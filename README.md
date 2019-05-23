@@ -1,4 +1,10 @@
 # quickstart-redhat-openshift
+## Why does this fork exist?
+Just to allow deploying into only one AZ, with 1 master and 1 ETCD.
+The original template is overloaded.
+It does not allow PVC due to restrictions on claiming persistent volumes in OpenShift/Kubernetes in different AZ.
+
+
 ## Red Hat OpenShift Container Platform on the AWS Cloud
 
 
