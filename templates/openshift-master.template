@@ -10,11 +10,7 @@ Metadata:
           - AvailabilityZones
           - VPCCIDR
           - PrivateSubnet1CIDR
-          - PrivateSubnet2CIDR
-          - PrivateSubnet3CIDR
           - PublicSubnet1CIDR
-          - PublicSubnet2CIDR
-          - PublicSubnet3CIDR
           - RemoteAccessCIDR
           - ContainerAccessCIDR
       - Label:
@@ -74,16 +70,8 @@ Metadata:
         default: SSH Key Name
       PrivateSubnet1CIDR:
         default: Private Subnet 1 CIDR
-      PrivateSubnet2CIDR:
-        default: Private Subnet 2 CIDR
-      PrivateSubnet3CIDR:
-        default: Private Subnet 3 CIDR
       PublicSubnet1CIDR:
         default: Public Subnet 1 CIDR
-      PublicSubnet2CIDR:
-        default: Public Subnet 2 CIDR
-      PublicSubnet3CIDR:
-        default: Public Subnet 3 CIDR
       QSS3BucketName:
         default: Quick Start S3 Bucket Name
       QSS3KeyPrefix:
@@ -163,8 +151,8 @@ Parameters:
     Type: String
     Default: ""
   AvailabilityZones:
-    Description: List of Availability Zones to use for the subnets in the VPC. Three
-      Availability Zones are used for this deployment, and the logical order of your
+    Description: List of Availability Zones to use for the subnets in the VPC. One
+      Availability Zone is used for this deployment, and the logical order of your
       selections is preserved.
     Type: List<AWS::EC2::AvailabilityZone::Name>
   KeyPairName:
@@ -177,38 +165,12 @@ Parameters:
     Default: 10.0.0.0/19
     Description: CIDR block for private subnet 1 located in Availability Zone 1
     Type: String
-  PrivateSubnet2CIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
-    Default: 10.0.32.0/19
-    Description: CIDR block for private subnet 2 located in Availability Zone 2
-    Type: String
-  PrivateSubnet3CIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
-    Default: 10.0.64.0/19
-    Description: CIDR block for private subnet 2 located in Availability Zone 3
-    Type: String
   PublicSubnet1CIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
     Default: 10.0.128.0/20
     Description: CIDR block for the public (DMZ) subnet 1 located in Availability
       Zone 1
-    Type: String
-  PublicSubnet2CIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
-    Default: 10.0.144.0/20
-    Description: CIDR block for the public (DMZ) subnet 2 located in Availability
-      Zone 2
-    Type: String
-  PublicSubnet3CIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
-    Default: 10.0.160.0/20
-    Description: CIDR block for the public (DMZ) subnet 2 located in Availability
-      Zone 3
     Type: String
   QSS3BucketName:
     AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
@@ -272,65 +234,101 @@ Parameters:
     Description: CIDR block for the VPC
     Type: String
   MasterInstanceType:
-    Default: m4.xlarge
+    Default: t3.large
     AllowedValues:
-      - t2.xlarge
-      - m4.xlarge
-      - m4.2xlarge
-      - m4.4xlarge
-      - m4.10xlarge
-      - c4.large
-      - c4.xlarge
-      - c4.2xlarge
-      - c4.4xlarge
-      - c4.8xlarge
+      - t3a.medium
+      - t3.medium
+      - t3a.large
+      - t3.large
+      - t3a.xlarge
+      - t3.xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5d.large
+      - c5d.xlarge
+      - c5d.2xlarge
+      - c5d.4xlarge
+      - c5n.large
+      - c5n.xlarge
+      - c5n.2xlarge
+      - c5n.4xlarge
     ConstraintDescription: Must contain valid instance type
     Description: Type of EC2 instance for the Master instances
     Type: String
   EtcdInstanceType:
-    Default: m4.xlarge
+    Default: t3a.small
     AllowedValues:
-      - t2.large
-      - m4.xlarge
-      - m4.2xlarge
-      - m4.4xlarge
-      - m4.10xlarge
-      - c4.large
-      - c4.xlarge
-      - c4.2xlarge
-      - c4.4xlarge
-      - c4.8xlarge
+      - t3a.medium
+      - t3.medium
+      - t3a.large
+      - t3.large
+      - t3a.xlarge
+      - t3.xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5d.large
+      - c5d.xlarge
+      - c5d.2xlarge
+      - c5d.4xlarge
+      - c5n.large
+      - c5n.xlarge
+      - c5n.2xlarge
+      - c5n.4xlarge
     ConstraintDescription: Must contain valid instance type
     Description: Type of EC2 instance for the Etcd instances
     Type: String
   NodesInstanceType:
-    Default: m4.xlarge
+    Default: t3a.large
     AllowedValues:
-      - t2.large
-      - m4.xlarge
-      - m4.2xlarge
-      - m4.4xlarge
-      - m4.10xlarge
-      - c4.large
-      - c4.xlarge
-      - c4.2xlarge
-      - c4.4xlarge
-      - c4.8xlarge
+      - t3a.medium
+      - t3.medium
+      - t3a.large
+      - t3.large
+      - t3a.xlarge
+      - t3.xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5d.large
+      - c5d.xlarge
+      - c5d.2xlarge
+      - c5d.4xlarge
+      - c5n.large
+      - c5n.xlarge
+      - c5n.2xlarge
+      - c5n.4xlarge
     ConstraintDescription: Must contain valid instance type
     Description: Type of EC2 instance for the Node instances
     Type: String
   NumberOfMaster:
-    Default: '3'
-    Description: This Deployment requires at least 3 OpenShift Master instances
+    Default: '1'
+    Description: This Deployment requires at least 1 OpenShift Master instance
     Type: String
-    AllowedPattern: '^[3579]$|(^[1-9]+[13579]$)'
+    AllowedPattern: '^[13579]$|(^[1-9]+[13579]$)'
   NumberOfEtcd:
-    Default: '3'
-    Description: This Deployment requires at least 3 OpenShift Etcd instances
+    Default: '1'
+    Description: This Deployment requires at least 1 OpenShift Etcd instances
     Type: String
-    AllowedPattern: '^[3579]$|(^[1-9]+[13579]$)'
+    AllowedPattern: '^[13579]$|(^[1-9]+[13579]$)'
   NumberOfNodes:
-    Default: '3'
+    Default: '1'
     Description: The desired capacity for the OpenShift node instances
     Type: Number
   OutputBucketName:
@@ -375,7 +373,7 @@ Parameters:
   GlusterStorageSize:
     Description: Size in GB of the available storage (will create 3x ebs volumes of this size)
     Type: Number
-    Default: 1000
+    Default: 100
   GlusterStorageType:
     Default: io1
     Description: EBS volume type to use for storage
@@ -397,13 +395,13 @@ Parameters:
     Description: Type of EC2 instance for the Node instances
     Type: String
   NumberOfGluster:
-    Default: '3'
-    Description: This Deployment requires a minimum of 3 Gluster instances
+    Default: '1'
+    Description: This Deployment requires a minimum of 1 Gluster instance
     Type: Number
     AllowedValues:
-      - '3'
+      - '1'
   GlusterStorageIops:
-    Default: 3000
+    Default: 200
     Description: EBS volume IOPS to allocate (only applicable if io1 has been selected for GlusterStorageType)
     Type: Number
   GlusterStorageEncrypted:
@@ -447,15 +445,11 @@ Resources:
       Parameters:
         AvailabilityZones: !Join [ ',', !Ref 'AvailabilityZones' ]
         KeyPairName: !Ref 'KeyPairName'
-        NumberOfAZs: '3'
+        NumberOfAZs: '1'
         PrivateSubnet1ACIDR: !Ref 'PrivateSubnet1CIDR'
-        PrivateSubnet2ACIDR: !Ref 'PrivateSubnet2CIDR'
-        PrivateSubnet3ACIDR: !Ref 'PrivateSubnet3CIDR'
         PrivateSubnetATag2: !Sub "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}=owned"
         PrivateSubnetATag3: "kubernetes.io/role/internal-elb="
         PublicSubnet1CIDR: !Ref 'PublicSubnet1CIDR'
-        PublicSubnet2CIDR: !Ref 'PublicSubnet2CIDR'
-        PublicSubnet3CIDR: !Ref 'PublicSubnet3CIDR'
         PublicSubnetTag2: !Sub "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}=owned"
         PublicSubnetTag3: "kubernetes.io/role/elb="
         VPCCIDR: !Ref 'VPCCIDR'
@@ -472,11 +466,7 @@ Resources:
         NumberOfNodes: !Ref 'NumberOfNodes'
         KeyPairName: !Ref 'KeyPairName'
         PrivateSubnet1ID: !GetAtt 'VPCStack.Outputs.PrivateSubnet1AID'
-        PrivateSubnet2ID: !GetAtt 'VPCStack.Outputs.PrivateSubnet2AID'
-        PrivateSubnet3ID: !GetAtt 'VPCStack.Outputs.PrivateSubnet3AID'
         PublicSubnet1ID: !GetAtt 'VPCStack.Outputs.PublicSubnet1ID'
-        PublicSubnet2ID: !GetAtt 'VPCStack.Outputs.PublicSubnet2ID'
-        PublicSubnet3ID: !GetAtt 'VPCStack.Outputs.PublicSubnet3ID'
         RemoteAccessCIDR: !Ref 'RemoteAccessCIDR'
         ContainerAccessCIDR: !Ref 'ContainerAccessCIDR'
         QSS3BucketName: !Ref 'QSS3BucketName'
