@@ -1,0 +1,23 @@
+NVirginiaRegionCondition
+
+3AZCondition
+4AZCondition
+GovCloudCondition
+NAT2EIP
+NAT3EIP
+NATGateway2
+NATGateway3
+PrivateSubnet2ACIDR
+PrivateSubnet2AID
+PrivateSubnet2BCIDR
+PrivateSubnet2BID
+PrivateSubnet3ACIDR
+PrivateSubnet3AID
+PrivateSubnet3BCIDR
+PrivateSubnet3BID
+Availability Zone 2
+Availability Zone 3
+PublicSubnet2CIDR
+PublicSubnet2ID
+PublicSubnet3CIDR
+PublicSubnet3ID
