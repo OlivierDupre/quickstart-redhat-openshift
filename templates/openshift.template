@@ -17,11 +17,7 @@ Metadata:
           - VPCID
           - VPCCIDR
           - PrivateSubnet1ID
-          - PrivateSubnet2ID
-          - PrivateSubnet3ID
           - PublicSubnet1ID
-          - PublicSubnet2ID
-          - PublicSubnet3ID
           - RemoteAccessCIDR
           - ContainerAccessCIDR
       - Label:
@@ -82,16 +78,8 @@ Metadata:
         default: AMI ID
       PrivateSubnet1ID:
         default: Private Subnet 1 ID
-      PrivateSubnet2ID:
-        default: Private Subnet 2 ID
-      PrivateSubnet3ID:
-        default: Private Subnet 3 ID
       PublicSubnet1ID:
         default: Public Subnet 1 ID
-      PublicSubnet2ID:
-        default: Public Subnet 2 ID
-      PublicSubnet3ID:
-        default: Public Subnet 3 ID
       QSS3BucketName:
         default: Quick Start S3 Bucket Name
       QSS3KeyPrefix:
@@ -180,25 +168,9 @@ Parameters:
     Description: ID of private subnet 1 in Availability Zone 1 for the Workload (e.g.,
       subnet-a0246dcd)
     Type: AWS::EC2::Subnet::Id
-  PrivateSubnet2ID:
-    Description: ID of private subnet 2 in Availability Zone 2 for the Workload (e.g.,
-      subnet-b1f432cd)
-    Type: AWS::EC2::Subnet::Id
-  PrivateSubnet3ID:
-    Description: ID of private subnet 3 in Availability Zone 3 for the Workload (e.g.,
-      subnet-b1f4a2cd)
-    Type: AWS::EC2::Subnet::Id
   PublicSubnet1ID:
     Description: ID of public subnet 1 in Availability Zone 1 for the ELB load balancer
       (e.g., subnet-9bc642ac)
-    Type: AWS::EC2::Subnet::Id
-  PublicSubnet2ID:
-    Description: ID of public subnet 2 in Availability Zone 2 for the ELB load balancer
-      (e.g., subnet-e3246d8e)
-    Type: AWS::EC2::Subnet::Id
-  PublicSubnet3ID:
-    Description: ID of public subnet 3 in Availability Zone 3 for the ELB load balancer
-      (e.g., subnet-e324ad8e)
     Type: AWS::EC2::Subnet::Id
   QSS3BucketName:
     AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
@@ -266,67 +238,101 @@ Parameters:
     Description: ID of your existing VPC for deployment
     Type: AWS::EC2::VPC::Id
   MasterInstanceType:
-    Default: m4.xlarge
+    Default: t3.large
     AllowedValues:
-      - t2.xlarge
-      - m4.xlarge
-      - m4.2xlarge
-      - m4.4xlarge
-      - m4.10xlarge
-      - c4.large
-      - c4.xlarge
-      - c4.2xlarge
-      - c4.4xlarge
-      - c4.8xlarge
+      - t3a.medium
+      - t3.medium
+      - t3a.large
+      - t3.large
+      - t3a.xlarge
+      - t3.xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5d.large
+      - c5d.xlarge
+      - c5d.2xlarge
+      - c5d.4xlarge
+      - c5n.large
+      - c5n.xlarge
+      - c5n.2xlarge
+      - c5n.4xlarge
     ConstraintDescription: Must contain valid instance type
     Description: Type of EC2 instance for the Master instances
     Type: String
   EtcdInstanceType:
-    Default: m4.xlarge
+    Default: t3a.small
     AllowedValues:
-      - t2.large
-      - t2.xlarge
-      - m4.xlarge
-      - m4.2xlarge
-      - m4.4xlarge
-      - m4.10xlarge
-      - c4.large
-      - c4.xlarge
-      - c4.2xlarge
-      - c4.4xlarge
-      - c4.8xlarge
+      - t3a.medium
+      - t3.medium
+      - t3a.large
+      - t3.large
+      - t3a.xlarge
+      - t3.xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5d.large
+      - c5d.xlarge
+      - c5d.2xlarge
+      - c5d.4xlarge
+      - c5n.large
+      - c5n.xlarge
+      - c5n.2xlarge
+      - c5n.4xlarge
     ConstraintDescription: Must contain valid instance type
     Description: Type of EC2 instance for the Etcd instances
     Type: String
   NodesInstanceType:
-    Default: m4.xlarge
+    Default: t3a.large
     AllowedValues:
-      - t2.large
-      - t2.xlarge
-      - m4.xlarge
-      - m4.2xlarge
-      - m4.4xlarge
-      - m4.10xlarge
-      - c4.large
-      - c4.xlarge
-      - c4.2xlarge
-      - c4.4xlarge
-      - c4.8xlarge
+      - t3a.medium
+      - t3.medium
+      - t3a.large
+      - t3.large
+      - t3a.xlarge
+      - t3.xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5d.large
+      - c5d.xlarge
+      - c5d.2xlarge
+      - c5d.4xlarge
+      - c5n.large
+      - c5n.xlarge
+      - c5n.2xlarge
+      - c5n.4xlarge
     ConstraintDescription: Must contain valid instance type
     Description: Type of EC2 instance for the Node instances
     Type: String
   NumberOfMaster:
-    Default: '3'
-    Description: This Deployment requires 3 OpenShift Master instances
+    Default: '1'
+    Description: This Deployment requires 1 OpenShift Master instances
     Type: String
-    AllowedPattern: '^[3579]$|(^[1-9]+[13579]$)'
+    AllowedPattern: '^[13579]$|(^[1-9]+[13579]$)'
   NumberOfEtcd:
-    Default: '3'
-    Description: This Deployment requires 3 OpenShift Etcd instances
+    Default: '1'
+    Description: This Deployment requires 1 OpenShift Etcd instances
     Type: String
-    AllowedPattern: '^[3579]$|(^[1-9]+[13579]$)'
+    AllowedPattern: '^[13579]$|(^[1-9]+[13579]$)'
   NumberOfNodes:
-    Default: '3'
+    Default: '1'
     Description: The desired capacity for the OpenShift node instances
     Type: Number
   OutputBucketName:
@@ -391,7 +397,7 @@ Parameters:
   GlusterStorageSize:
     Description: Size in GB of the available storage (will create 3x ebs volumes of this size)
     Type: Number
-    Default: 1000
+    Default: 100
   GlusterStorageType:
     Default: io1
     Description: EBS volume type to use for storage
@@ -401,7 +407,7 @@ Parameters:
       - gp2
       - st1
   GlusterStorageIops:
-    Default: 3000
+    Default: 200
     Description: EBS volume IOPS to allocate (only applicable if io1 has been selected for GlusterStorageType)
     Type: Number
   GlusterStorageEncrypted:
@@ -424,7 +430,7 @@ Parameters:
     Description: Type of EC2 instance for the GlusterFS instances
     Type: String
   NumberOfGluster:
-    Default: '3'
+    Default: '1'
     Description: This Deployment requires a minimum of 3 Gluster instances
     Type: Number
   AutomationBroker:
@@ -1280,7 +1286,7 @@ Resources:
         - !Ref 'OpenShiftMasterELB'
       DesiredCapacity: !Ref 'NumberOfMaster'
       MaxSize: !Ref 'NumberOfMaster'
-      MinSize: '2'
+      MinSize: '1'
       HealthCheckType: ELB
       HealthCheckGracePeriod: 2400
       LaunchConfigurationName: !Ref 'OpenShiftMasterASLaunchConfig'
@@ -1298,8 +1304,6 @@ Resources:
           Value: owned
       VPCZoneIdentifier:
         - !Ref 'PrivateSubnet1ID'
-        - !Ref 'PrivateSubnet2ID'
-        - !Ref 'PrivateSubnet3ID'
     CreationPolicy:
       ResourceSignal:
         Count: !Ref 'NumberOfMaster'
@@ -1312,7 +1316,7 @@ Resources:
     Properties:
       DesiredCapacity: !Ref 'NumberOfEtcd'
       MaxSize: !Ref 'NumberOfEtcd'
-      MinSize: '2'
+      MinSize: '1'
       LaunchConfigurationName: !Ref 'OpenShiftEtcdLaunchConfig'
       Tags:
         - Key: Name
@@ -1320,8 +1324,6 @@ Resources:
           Value: openshift-etcd
       VPCZoneIdentifier:
         - !Ref 'PrivateSubnet1ID'
-        - !Ref 'PrivateSubnet2ID'
-        - !Ref 'PrivateSubnet3ID'
     CreationPolicy:
       ResourceSignal:
         Count: !Ref 'NumberOfEtcd'
@@ -1354,8 +1356,6 @@ Resources:
           Value: owned
       VPCZoneIdentifier:
         - !Ref 'PrivateSubnet1ID'
-        - !Ref 'PrivateSubnet2ID'
-        - !Ref 'PrivateSubnet3ID'
     CreationPolicy:
       ResourceSignal:
         Count: !Ref 'NumberOfNodes'
@@ -1369,7 +1369,7 @@ Resources:
     Properties:
       DesiredCapacity: !Ref 'NumberOfGluster'
       MaxSize: !Ref 'NumberOfGluster'
-      MinSize: '2'
+      MinSize: '1'
       LaunchConfigurationName: !Ref 'OpenShiftGlusterLaunchConfig'
       Tags:
         - Key: Name
@@ -1385,8 +1385,6 @@ Resources:
           Value: owned
       VPCZoneIdentifier:
         - !Ref 'PrivateSubnet1ID'
-        - !Ref 'PrivateSubnet2ID'
-        - !Ref 'PrivateSubnet3ID'
     CreationPolicy:
       ResourceSignal:
         Count: !Ref 'NumberOfGluster'
@@ -1895,8 +1893,6 @@ Resources:
       CrossZone: true
       Subnets:
         - !Ref 'PublicSubnet1ID'
-        - !Ref 'PublicSubnet2ID'
-        - !Ref 'PublicSubnet3ID'
       SecurityGroups:
         - !Ref 'OpenShiftSecurityGroup'
       Listeners:
@@ -1934,8 +1930,6 @@ Resources:
       CrossZone: true
       Subnets:
         - !Ref 'PublicSubnet1ID'
-        - !Ref 'PublicSubnet2ID'
-        - !Ref 'PublicSubnet3ID'
       SecurityGroups:
         - !Ref 'OpenShiftNodeSecurityGroup'
       Listeners:
@@ -1983,8 +1977,6 @@ Resources:
       Scheme: internal
       Subnets:
         - !Ref 'PrivateSubnet1ID'
-        - !Ref 'PrivateSubnet2ID'
-        - !Ref 'PrivateSubnet3ID'
       Type: network
       Tags:
         - Key: !Sub
