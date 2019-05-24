@@ -177,7 +177,7 @@ Parameters:
     ConstraintDescription: Quick Start bucket name can include numbers, lowercase
       letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen
       (-).
-    Default: aws-aforge-templates
+    Default: aforge-aws-templates
     Description: S3 bucket name for the Quick Start assets. This string can include
       numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start
       or end with a hyphen (-).
@@ -191,8 +191,6 @@ Parameters:
       can include numbers, lowercase letters, uppercase letters, hyphens (-), and
       forward slash (/).
     Type: String
-  MyStacksRegion:
-    Value: !Ref "AWS::Region"
   RemoteAccessCIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
@@ -445,8 +443,8 @@ Resources:
   VPCStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      # TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/aws-vpc.template'
-      TemplateURL: !Sub 'https://s3.${MyStacksRegion}.amazonaws.com/${QSS3BucketName}/${QSS3KeyPrefix}templates/aws-vpc.template'
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/aws-vpc.template'
+      # TemplateURL: !Sub 'https://s3.eu-west-3.amazonaws.com/${QSS3BucketName}/${QSS3KeyPrefix}templates/aws-vpc.template'
       Parameters:
         AvailabilityZones: !Join [ ',', !Ref 'AvailabilityZones' ]
         KeyPairName: !Ref 'KeyPairName'
@@ -461,8 +459,8 @@ Resources:
   OpenShiftStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      # TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift.template'
-      TemplateURL: !Sub 'https://s3.${MyStacksRegion}.amazonaws.com/${QSS3BucketName}/${QSS3KeyPrefix}templates/openshift.template'
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift.template'
+      # TemplateURL: !Sub 'https://s3.eu-west-3.amazonaws.com/${QSS3BucketName}/${QSS3KeyPrefix}templates/openshift.template'
       Parameters:
         MasterInstanceType: !Ref 'MasterInstanceType'
         NodesInstanceType: !Ref 'NodesInstanceType'
