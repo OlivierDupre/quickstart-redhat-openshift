@@ -240,11 +240,8 @@ Parameters:
   MasterInstanceType:
     Default: t3.large
     AllowedValues:
-      - t3a.medium
       - t3.medium
-      - t3a.large
       - t3.large
-      - t3a.xlarge
       - t3.xlarge
       - m5.large
       - m5.xlarge
@@ -254,27 +251,15 @@ Parameters:
       - c5.xlarge
       - c5.2xlarge
       - c5.4xlarge
-      - c5d.large
-      - c5d.xlarge
-      - c5d.2xlarge
-      - c5d.4xlarge
-      - c5n.large
-      - c5n.xlarge
-      - c5n.2xlarge
-      - c5n.4xlarge
     ConstraintDescription: Must contain valid instance type
     Description: Type of EC2 instance for the Master instances
     Type: String
   EtcdInstanceType:
-    Default: t3a.small
+    Default: t3.small
     AllowedValues:
-      - t3a.small
       - t3.small
-      - t3a.medium
       - t3.medium
-      - t3a.large
       - t3.large
-      - t3a.xlarge
       - t3.xlarge
       - m5.large
       - m5.xlarge
@@ -284,25 +269,14 @@ Parameters:
       - c5.xlarge
       - c5.2xlarge
       - c5.4xlarge
-      - c5d.large
-      - c5d.xlarge
-      - c5d.2xlarge
-      - c5d.4xlarge
-      - c5n.large
-      - c5n.xlarge
-      - c5n.2xlarge
-      - c5n.4xlarge
     ConstraintDescription: Must contain valid instance type
     Description: Type of EC2 instance for the Etcd instances
     Type: String
   NodesInstanceType:
-    Default: t3a.large
+    Default: t3.large
     AllowedValues:
-      - t3a.medium
       - t3.medium
-      - t3a.large
       - t3.large
-      - t3a.xlarge
       - t3.xlarge
       - m5.large
       - m5.xlarge
@@ -312,14 +286,6 @@ Parameters:
       - c5.xlarge
       - c5.2xlarge
       - c5.4xlarge
-      - c5d.large
-      - c5d.xlarge
-      - c5d.2xlarge
-      - c5d.4xlarge
-      - c5n.large
-      - c5n.xlarge
-      - c5n.2xlarge
-      - c5n.4xlarge
     ConstraintDescription: Must contain valid instance type
     Description: Type of EC2 instance for the Node instances
     Type: String
