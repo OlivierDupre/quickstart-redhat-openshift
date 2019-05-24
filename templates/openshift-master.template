@@ -162,13 +162,13 @@ Parameters:
   PrivateSubnet1CIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
-    Default: 10.0.0.0/19
+    Default: 10.2.0.0/19
     Description: CIDR block for private subnet 1 located in Availability Zone 1
     Type: String
   PublicSubnet1CIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
-    Default: 10.0.128.0/20
+    Default: 10.2.128.0/20
     Description: CIDR block for the public (DMZ) subnet 1 located in Availability
       Zone 1
     Type: String
@@ -177,7 +177,7 @@ Parameters:
     ConstraintDescription: Quick Start bucket name can include numbers, lowercase
       letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen
       (-).
-    Default: aws-aforge
+    Default: aws-aforge-templates
     Description: S3 bucket name for the Quick Start assets. This string can include
       numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start
       or end with a hyphen (-).
@@ -191,6 +191,8 @@ Parameters:
       can include numbers, lowercase letters, uppercase letters, hyphens (-), and
       forward slash (/).
     Type: String
+  MyStacksRegion:
+    Value: !Ref "AWS::Region"
   RemoteAccessCIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
@@ -224,17 +226,17 @@ Parameters:
     Type: String
   OpenshiftContainerPlatformVersion:
     Description: OpenShift version to deploy
-    Default: '3.10'
+    Default: '3.11'
     Type: String
     AllowedValues: [ '3.10', '3.11' ]
   VPCCIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
-    Default: 10.0.0.0/16
+    Default: 10.2.0.0/16
     Description: CIDR block for the VPC
     Type: String
   MasterInstanceType:
-    Default: t3.large
+    Default: t3a.medium
     AllowedValues:
       - t3a.medium
       - t3.medium
@@ -443,7 +445,8 @@ Resources:
   VPCStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/aws-vpc.template'
+      # TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/aws-vpc.template'
+      TemplateURL: !Sub 'https://s3.${MyStacksRegion}.amazonaws.com/${QSS3BucketName}/${QSS3KeyPrefix}templates/aws-vpc.template'
       Parameters:
         AvailabilityZones: !Join [ ',', !Ref 'AvailabilityZones' ]
         KeyPairName: !Ref 'KeyPairName'
@@ -458,7 +461,8 @@ Resources:
   OpenShiftStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift.template'
+      # TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift.template'
+      TemplateURL: !Sub 'https://s3.${MyStacksRegion}.amazonaws.com/${QSS3BucketName}/${QSS3KeyPrefix}templates/openshift.template'
       Parameters:
         MasterInstanceType: !Ref 'MasterInstanceType'
         NodesInstanceType: !Ref 'NodesInstanceType'
