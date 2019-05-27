@@ -238,8 +238,11 @@ Parameters:
     Description: ID of your existing VPC for deployment
     Type: AWS::EC2::VPC::Id
   MasterInstanceType:
-    Default: t3.large
+    Default: t2.medium
     AllowedValues:
+      - t2.medium
+      - t2.large
+      - t2.xlarge
       - t3.medium
       - t3.large
       - t3.xlarge
@@ -273,8 +276,11 @@ Parameters:
     Description: Type of EC2 instance for the Etcd instances
     Type: String
   NodesInstanceType:
-    Default: t3.large
+    Default: t2.large
     AllowedValues:
+      - t2.medium
+      - t2.large
+      - t2.xlarge
       - t3.medium
       - t3.large
       - t3.xlarge
