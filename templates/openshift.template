@@ -238,7 +238,7 @@ Parameters:
     Description: ID of your existing VPC for deployment
     Type: AWS::EC2::VPC::Id
   MasterInstanceType:
-    Default: t2.medium
+    Default: t2.large
     AllowedValues:
       - t2.medium
       - t2.large
@@ -258,8 +258,11 @@ Parameters:
     Description: Type of EC2 instance for the Master instances
     Type: String
   EtcdInstanceType:
-    Default: t3.small
+    Default: t2.small
     AllowedValues:
+      - t2.small
+      - t2.medium
+      - t2.large
       - t3.small
       - t3.medium
       - t3.large
@@ -450,7 +453,7 @@ Mappings:
       RHEL76HVM: ami-055c55112e25b1f1f
   OpenshiftVersionMap:
     '3.11':
-      AnsiblePlaybookGitRepoTag: 3.11.112-1
+      AnsiblePlaybookGitRepoTag: 3.11.115-1
       AnsibleVersion: 2.6.6
     '3.10':
       AnsiblePlaybookGitRepoTag: 3.10.143-1
