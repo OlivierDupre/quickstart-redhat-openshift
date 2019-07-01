@@ -1253,8 +1253,123 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       RetentionInDays: 7
-  OpenShiftMasterASG:
-    Type: AWS::AutoScaling::AutoScalingGroup
+#  OpenShiftMasterASG:
+#    Type: AWS::AutoScaling::AutoScalingGroup
+#    DependsOn:
+#      - GetRSA
+#      - CleanupPV
+#    Properties:
+#      LoadBalancerNames:
+#        - !Ref 'OpenShiftMasterELB'
+#      DesiredCapacity: !Ref 'NumberOfMaster'
+#      MaxSize: !Ref 'NumberOfMaster'
+#      MinSize: '1'
+#      HealthCheckType: ELB
+#      HealthCheckGracePeriod: 2400
+#      LaunchConfigurationName: !Ref 'OpenShiftMasterASLaunchConfig'
+#      Tags:
+#        - Key: Name
+#          PropagateAtLaunch: true
+#          Value: openshift-master
+#        - Key: !Sub
+#          - 'kubernetes.io/cluster/${ClusterName}'
+#          - ClusterName: !If
+#            - CustomClusterName
+#            - !Ref ClusterName
+#            - !Sub '${AWS::StackName}-${AWS::Region}'
+#          PropagateAtLaunch: true
+#          Value: owned
+#      VPCZoneIdentifier:
+#        - !Ref 'PrivateSubnet1ID'
+#    CreationPolicy:
+#      ResourceSignal:
+#        Count: !Ref 'NumberOfMaster'
+#        Timeout: PT45M
+#  OpenShiftEtcdASG:
+#    Type: AWS::AutoScaling::AutoScalingGroup
+#    DependsOn:
+#      - GetRSA
+#      - CleanupPV
+#    Properties:
+#      DesiredCapacity: !Ref 'NumberOfEtcd'
+#      MaxSize: !Ref 'NumberOfEtcd'
+#      MinSize: '1'
+#      LaunchConfigurationName: !Ref 'OpenShiftEtcdLaunchConfig'
+#      Tags:
+#        - Key: Name
+#          PropagateAtLaunch: true
+#          Value: openshift-etcd
+#      VPCZoneIdentifier:
+#        - !Ref 'PrivateSubnet1ID'
+#    CreationPolicy:
+#      ResourceSignal:
+#        Count: !Ref 'NumberOfEtcd'
+#        Timeout: PT45M
+#  OpenShiftNodeASG:
+#    Type: AWS::AutoScaling::AutoScalingGroup
+#    DependsOn:
+#      - GetRSA
+#      - CleanupPV
+#    Properties:
+#      LoadBalancerNames:
+#        - !Ref 'ContainerAccessELB'
+#      DesiredCapacity: !Ref 'NumberOfNodes'
+#      MaxSize: !Ref 'NumberOfNodes'
+#      MinSize: '1'
+#      HealthCheckType: ELB
+#      HealthCheckGracePeriod: 1200
+#      LaunchConfigurationName: !Ref 'OpenShiftNodesLaunchConfig'
+#      Tags:
+#        - Key: Name
+#          PropagateAtLaunch: true
+#          Value: openshift-nodes
+#        - Key: !Sub
+#          - 'kubernetes.io/cluster/${ClusterName}'
+#          - ClusterName: !If
+#            - CustomClusterName
+#            - !Ref ClusterName
+#            - !Sub '${AWS::StackName}-${AWS::Region}'
+#          PropagateAtLaunch: true
+#          Value: owned
+#      VPCZoneIdentifier:
+#        - !Ref 'PrivateSubnet1ID'
+#    CreationPolicy:
+#      ResourceSignal:
+#        Count: !Ref 'NumberOfNodes'
+#        Timeout: PT45M
+#  OpenShiftGlusterASG:
+#    Condition: EnableGlusterFS
+#    Type: AWS::AutoScaling::AutoScalingGroup
+#    DependsOn:
+#      - GetRSA
+#      - CleanupPV
+#    Properties:
+#      DesiredCapacity: !Ref 'NumberOfGluster'
+#      MaxSize: !Ref 'NumberOfGluster'
+#      MinSize: '1'
+#      LaunchConfigurationName: !Ref 'OpenShiftGlusterLaunchConfig'
+#      Tags:
+#        - Key: Name
+#          PropagateAtLaunch: true
+#          Value: openshift-glusterfs
+#        - Key: !Sub
+#          - 'kubernetes.io/cluster/${ClusterName}'
+#          - ClusterName: !If
+#            - CustomClusterName
+#            - !Ref ClusterName
+#            - !Sub '${AWS::StackName}-${AWS::Region}'
+#          PropagateAtLaunch: true
+#          Value: owned
+#      VPCZoneIdentifier:
+#        - !Ref 'PrivateSubnet1ID'
+#    CreationPolicy:
+#      ResourceSignal:
+#        Count: !Ref 'NumberOfGluster'
+#        Timeout: PT45M
+
+
+  OpenShiftMasterEC2:
+    Type: AWS::EC2::Instance
     DependsOn:
       - GetRSA
       - CleanupPV
@@ -1285,8 +1400,8 @@ Resources:
       ResourceSignal:
         Count: !Ref 'NumberOfMaster'
         Timeout: PT45M
-  OpenShiftEtcdASG:
-    Type: AWS::AutoScaling::AutoScalingGroup
+  OpenShiftEtcdEC2:
+    Type: AWS::EC2::Instance
     DependsOn:
       - GetRSA
       - CleanupPV
@@ -1305,8 +1420,8 @@ Resources:
       ResourceSignal:
         Count: !Ref 'NumberOfEtcd'
         Timeout: PT45M
-  OpenShiftNodeASG:
-    Type: AWS::AutoScaling::AutoScalingGroup
+  OpenShiftNodeEC2:
+    Type: AWS::EC2::Instance
     DependsOn:
       - GetRSA
       - CleanupPV
@@ -1339,7 +1454,7 @@ Resources:
         Timeout: PT45M
   OpenShiftGlusterASG:
     Condition: EnableGlusterFS
-    Type: AWS::AutoScaling::AutoScalingGroup
+    Type: AWS::EC2::Instance
     DependsOn:
       - GetRSA
       - CleanupPV
@@ -1531,7 +1646,7 @@ Resources:
             aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
             chmod +x bootstrap.sh
             ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
-            cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource OpenShiftEtcdASG --region ${AWS::Region}
+            cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource OpenShiftEtcdEC2 --region ${AWS::Region}
           -
             S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
   OpenShiftNodesLaunchConfig:
@@ -1614,7 +1729,7 @@ Resources:
             aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
             chmod +x bootstrap.sh
             ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
-            cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource OpenShiftNodeASG --region ${AWS::Region}
+            cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource OpenShiftNodeEC2 --region ${AWS::Region}
           -
             S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
   OpenShiftMasterASLaunchConfig:
@@ -1699,7 +1814,7 @@ Resources:
             chmod +x bootstrap.sh
             ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
             echo "$(curl http://169.254.169.254/latest/meta-data/local-ipv4) ${OpenShiftMasterInternalELB.DNSName}" >> /etc/hosts
-            cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource OpenShiftMasterASG --region ${AWS::Region}
+            cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource OpenShiftMasterEC2 --region ${AWS::Region}
           -
             S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
   CleanupPVRole:
@@ -2113,34 +2228,34 @@ Resources:
     CreationPolicy:
       ResourceSignal:
         Timeout: PT360M
-  OpenShiftScalingCWEventRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Description: CWEvent rule to trigger OpenShift Scaling scripts within the Ansible
-        config server. (AWS QuickStart)
-      State: ENABLED
-      EventPattern:
-        source:
-          - aws.autoscaling
-        detail-type:
-          - EC2 Instance Launch Successful
-          - EC2 Instance Terminate Successful
-          - EC2 Instance Terminate Unsuccessful
-        detail:
-          AutoScalingGroupName:
-            - !Ref 'OpenShiftMasterASG'
-            - !Ref 'OpenShiftEtcdASG'
-            - !Ref 'OpenShiftNodeASG'
-      Targets:
-        - Id: OSEScalingSSMTarget1
-          Arn: !Sub 'arn:aws:ssm:${AWS::Region}::document/AWS-RunShellScript'
-          Input: !Sub '{"commands":["/bin/aws-ose-qs-scale --scale-in-progress --debug --ocp-version=${OpenshiftContainerPlatformVersion}"],"workingDirectory":["/"],"executionTimeout":["3600"]}'
-          RoleArn: !GetAtt 'OpenShiftScalingCWEventRole.Arn'
-          RunCommandParameters:
-            RunCommandTargets:
-              - Key: InstanceIds
-                Values:
-                  - !Ref 'AnsibleConfigServer'
+#  OpenShiftScalingCWEventRule:
+#    Type: AWS::Events::Rule
+#    Properties:
+#      Description: CWEvent rule to trigger OpenShift Scaling scripts within the Ansible
+#        config server. (AWS QuickStart)
+#      State: ENABLED
+#      EventPattern:
+#        source:
+#          - aws.autoscaling
+#        detail-type:
+#          - EC2 Instance Launch Successful
+#          - EC2 Instance Terminate Successful
+#          - EC2 Instance Terminate Unsuccessful
+#        detail:
+#          AutoScalingGroupName:
+#            - !Ref 'OpenShiftMasterASG'
+#            - !Ref 'OpenShiftEtcdASG'
+#            - !Ref 'OpenShiftNodeASG'
+#      Targets:
+#        - Id: OSEScalingSSMTarget1
+#          Arn: !Sub 'arn:aws:ssm:${AWS::Region}::document/AWS-RunShellScript'
+#          Input: !Sub '{"commands":["/bin/aws-ose-qs-scale --scale-in-progress --debug --ocp-version=${OpenshiftContainerPlatformVersion}"],"workingDirectory":["/"],"executionTimeout":["3600"]}'
+#          RoleArn: !GetAtt 'OpenShiftScalingCWEventRole.Arn'
+#          RunCommandParameters:
+#            RunCommandTargets:
+#              - Key: InstanceIds
+#                Values:
+#                  - !Ref 'AnsibleConfigServer'
 Outputs:
   OpenShiftUI:
     Description: The URL OpenShiftUI
