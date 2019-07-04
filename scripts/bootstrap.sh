@@ -50,7 +50,7 @@ if [ "${LAUNCH_CONFIG}" != "OpenShiftEtcdLaunchConfig" ]; then
     qs_retry_command 10 systemctl start docker
 fi
 
-qs_retry_command 10 cfn-init -v  --stack ${AWS_STACKNAME} --resource ${LAUNCH_CONFIG} --configsets quickstart --region ${AWS_REGION}
+#qs_retry_command 10 cfn-init -v  --stack ${AWS_STACKNAME} --resource ${LAUNCH_CONFIG} --configsets quickstart --region ${AWS_REGION}
 qs_retry_command 10 yum install -y wget atomic-openshift-docker-excluder atomic-openshift-node \
     atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq glusterfs \
     glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services \
