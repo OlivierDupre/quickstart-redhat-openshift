@@ -36,7 +36,7 @@ printf "[Global]\nZone = $(curl -s http://169.254.169.254/latest/meta-data/place
 printf "KubernetesClusterTag='kubernetes.io/cluster/${AWS_STACKNAME}-${AWS_REGION}'\n" >> /etc/aws/aws.conf
 printf "KubernetesClusterID=owned\n" >> /etc/aws/aws.conf
 
-if [ "${LAUNCH_CONFIG}" != "OpenShiftEtcdLaunchConfig" ]; then
+if [ "${INSTANCE_NAME}" != "OpenShiftEtcdEC2" ]; then
     qs_retry_command 10 yum install docker-client-1.13.1 docker-common-1.13.1 docker-rhel-push-plugin-1.13.1 docker-1.13.1 -y
     systemctl enable docker.service
     qs_retry_command 20 'systemctl start docker.service'
@@ -50,7 +50,7 @@ if [ "${LAUNCH_CONFIG}" != "OpenShiftEtcdLaunchConfig" ]; then
     qs_retry_command 10 systemctl start docker
 fi
 
-#qs_retry_command 10 cfn-init -v  --stack ${AWS_STACKNAME} --resource ${LAUNCH_CONFIG} --configsets quickstart --region ${AWS_REGION}
+qs_retry_command 10 cfn-init -v  --stack ${AWS_STACKNAME} --resource ${INSTANCE_NAME} --configsets cfg_node_keys --region ${AWS_REGION}
 qs_retry_command 10 yum install -y wget atomic-openshift-docker-excluder atomic-openshift-node \
     atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq glusterfs \
     glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services \

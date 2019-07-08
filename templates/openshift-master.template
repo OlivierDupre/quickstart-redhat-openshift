@@ -215,6 +215,7 @@ Parameters:
     MinLength: '8'
     AllowedPattern: ^[^ \\']+$
     NoEcho: 'true'
+    Default: poc-aforge
   RedhatSubscriptionUserName:
     Description: Enter Redhat RHN User Name
     Type: String
@@ -327,14 +328,14 @@ Parameters:
     Description: 'OPTIONAL: Route 53 Hosted Zone ID to use. If left blank route 53
       will not be configured and DNS must be setup manually If you specify this you must also specify DomainName'
     Type: String
-    Default: ""
+    Default: "Z3BFPMYJKZCJ79"
   DomainName:
     Description: >-
       OPTIONAL: domain name configured for the cluster, if left blank self signed
       certificates will be used for TLS and the LoadBalancer's auto-generated hostname
       will be used for connections from outside the cluster.
     Type: String
-    Default: ""
+    Default: "ads-poc.com"
   SubDomainPrefix:
     Default: ''
     Description: 'OPTIONAL: Subdomain to use, if left blank DomainName will be used
@@ -406,7 +407,7 @@ Parameters:
       - "True"
       - "False"
   ClusterName:
-    Default: ""
+    Default: "poc-aforge"
     Description: Custom cluster name for kubernetes.io/cluster/ tags, if left blank will use the stackname suffixed with the region
     Type: String
   ClusterConsole:

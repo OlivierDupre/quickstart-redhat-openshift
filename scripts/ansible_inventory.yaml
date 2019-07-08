@@ -1,0 +1,92 @@
+OSEv3:
+  children:
+    etcd:
+      hosts:
+        ip-10-2-1-10.eu-central-1.compute.internal:
+          instance_id: ETCD_INSTANCE_ID
+    glusterfs: {}
+    masters:
+      hosts:
+        ip-10-2-1-20.eu-central-1.compute.internal: &id001
+          instance_id: MASTER_INSTANCE_ID
+          openshift_node_group_name: node-config-master
+          openshift_schedulable: 'true'
+    new_etcd: {}
+    new_glusterfs: {}
+    new_masters: {}
+    new_nodes: {}
+    nodes:
+      hosts:
+        ip-10-2-1-30.eu-central-1.compute.internal:
+          instance_id: NODE_INSTANCE_ID
+          openshift_node_group_name: node-config-compute-infra
+        ip-10-2-1-20.eu-central-1.compute.internal: *id001
+    provision_in_progress: {}
+  vars:
+    ansible_ssh_user: root
+    containerized: 'false'
+    openshift_clock_enabled: 'true'
+    openshift_cloudprovider_kind: aws
+    openshift_clusterid: owned
+    openshift_cockpit_deployer_image: registry.access.redhat.com/openshift3/registry-console:v3.11
+    openshift_deployment_type: openshift-enterprise
+    openshift_disable_check: memory_availability
+    openshift_examples_modify_imagestreams: 'true'
+    openshift_hosted_registry_acceptschema2: 'true'
+    openshift_hosted_registry_enforcequota: 'true'
+    openshift_hosted_registry_pullthrough: 'true'
+    openshift_hosted_registry_storage_kind: object
+    openshift_hosted_registry_storage_provider: s3
+    openshift_hosted_registry_storage_s3_bucket: REGISTRY_BUCKET
+    openshift_hosted_registry_storage_s3_chunksize: 26214400
+    openshift_hosted_registry_storage_s3_region: AWS_REGION
+    openshift_hosted_registry_storage_s3_rootdirectory: /registry
+    openshift_master_api_port: '443'
+    #openshift_master_cluster_hostname: INTERNAL_MASTER_ELBDNSNAME
+    openshift_master_cluster_method: native
+    openshift_master_cluster_public_hostname: MASTER_ELBDNSNAME
+    openshift_master_console_port: '443'
+    openshift_master_default_subdomain: MASTER_ELBDNSNAME
+    openshift_master_identity_providers:
+    - challenge: 'true'
+      kind: HTPasswdPasswordIdentityProvider
+      login: 'true'
+      name: htpasswd_auth
+    openshift_metrics_cassandra_storage_type: dynamic
+    openshift_metrics_hawkular_hostname: metrics.MASTER_ELBDNSNAME
+    openshift_metrics_install_metrics: 'true'
+    openshift_metrics_start_cluster: 'true'
+    openshift_node_groups:
+    - labels:
+      - node-role.kubernetes.io/master=true
+      name: node-config-master
+    - labels:
+      - node-role.kubernetes.io/infra=true
+      - node-role.kubernetes.io/compute=true
+      - registry_node=true
+      - router_node=true
+      name: node-config-compute-infra
+    - labels:
+      - node-role.kubernetes.io/compute=true
+      name: node-config-compute
+    - labels:
+      - node-role.kubernetes.io/compute-storage=true
+      name: node-config-glusterfs
+    - labels:
+      - node-role.kubernetes.io/infra=true
+      - router_node=true
+      - registry_node=true
+      name: node-config-infra
+    - labels:
+      - router_node=true
+      name: node-config-router
+    - labels:
+      - registry_node=true
+      name: node-config-registry
+    openshift_registry_selector: registry_node=true
+    openshift_router_selector: router_node=true
+    openshift_storage_glusterfs_block_image: registry.access.redhat.com/rhgs3/rhgs-gluster-block-prov-rhel7:v3.11
+    openshift_storage_glusterfs_heketi_image: registry.access.redhat.com/rhgs3/rhgs-volmanager-rhel7:v3.11
+    openshift_storage_glusterfs_image: registry.access.redhat.com/rhgs3/rhgs-server-rhel7:v3.11
+    openshift_storage_glusterfs_s3_deploy: 'false'
+    oreg_url: registry.access.redhat.com/openshift3/ose-${component}:${version}

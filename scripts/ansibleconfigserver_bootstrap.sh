@@ -141,6 +141,8 @@ qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/playbooks/post_scaleup.yml /usr
 qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/playbooks/pre_scaleup.yml /usr/share/ansible/openshift-ansible/
 qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/playbooks/pre_scaledown.yml /usr/share/ansible/openshift-ansible/
 qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/playbooks/remove_node_from_etcd_cluster.yml /usr/share/ansible/openshift-ansible/
+qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/ansible_inventory.yaml /tmp/ansible_inventory.yaml # ODA
+
 
 ASG_COUNT=3
 if [ "${ENABLE_GLUSTERFS}" == "Enabled" ] ; then
@@ -156,18 +158,46 @@ fi
 #qs_retry_command 10 aws autoscaling suspend-processes --auto-scaling-group-name ${OPENSHIFTMASTERASG} --scaling-processes HealthCheck --region ${AWS_REGION}
 #qs_retry_command 10 aws autoscaling attach-load-balancer-target-groups --auto-scaling-group-name ${OPENSHIFTMASTERASG} --target-group-arns ${OPENSHIFTMASTERINTERNALTGARN} --region ${AWS_REGION}
 
-/bin/aws-ose-qs-scale --generate-initial-inventory --ocp-version ${OCP_VERSION} --write-hosts-to-tempfiles --debug
+#/bin/aws-ose-qs-scale --generate-initial-inventory --ocp-version ${OCP_VERSION} --write-hosts-to-tempfiles --debug
 cat /tmp/openshift_ansible_inventory* >> /tmp/openshift_inventory_userdata_vars || true
 sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg
 sed -i 's/#log_path/log_path/g' /etc/ansible/ansible.cfg
 sed -i 's/#stdout_callback.*/stdout_callback = json/g' /etc/ansible/ansible.cfg
 sed -i 's/#deprecation_warnings = True/deprecation_warnings = False/g' /etc/ansible/ansible.cfg
 
+###### ODA ######
+
+### dirty ? : should use instance name ?
+ETCD_INSTANCE_ID=$(aws ec2 describe-instances  --region=eu-central-1 --filters "Name=network-interface.addresses.private-ip-address,Values=10.2.1.10"  --query 'Reservations[*].Instances[*].[InstanceId]' | grep -v "\[" | grep -v "\]" | awk -F"\"" '{print $2}') 
+MASTER_INSTANCE_ID=$(aws ec2 describe-instances  --region=eu-central-1 --filters "Name=network-interface.addresses.private-ip-address,Values=10.2.1.20"  --query 'Reservations[*].Instances[*].[InstanceId]' | grep -v "\[" | grep -v "\]" | awk -F"\"" '{print $2}')
+NODE_INSTANCE_ID=$(aws ec2 describe-instances  --region=eu-central-1 --filters "Name=network-interface.addresses.private-ip-address,Values=10.2.1.30"  --query 'Reservations[*].Instances[*].[InstanceId]' | grep -v "\[" | grep -v "\]" | awk -F"\"" '{print $2}')
+
+
+
+sed -i "s/ETCD_INSTANCE_ID/${ETCD_INSTANCE_ID}/g" /tmp/ansible_inventory.yaml
+sed -i "s/MASTER_INSTANCE_ID/${MASTER_INSTANCE_ID}/g" /tmp/ansible_inventory.yaml
+sed -i "s/NODE_INSTANCE_ID/${NODE_INSTANCE_ID}/g" /tmp/ansible_inventory.yaml
+sed -i "s/INTERNAL_MASTER_ELBDNSNAME/${INTERNAL_MASTER_ELBDNSNAME}/g" /tmp/ansible_inventory.yaml
+sed -i "s/MASTER_ELBDNSNAME/${MASTER_ELBDNSNAME}/g" /tmp/ansible_inventory.yaml
+sed -i "s/QS_S3BUCKETNAME/${QS_S3BUCKETNAME}/g" /tmp/ansible_inventory.yaml
+sed -i "s/REGISTRY_BUCKET/${REGISTRY_BUCKET}/g" /tmp/ansible_inventory.yaml
+sed -i "s/AWS_REGION/${AWS_REGION}/g" /tmp/ansible_inventory.yaml
+
+
+mv /etc/ansible/hosts /etc/ansible/hosts.bak || true
+cp -f /tmp/ansible_inventory.yaml /etc/ansible/hosts
+
+### dirty : should be a parameter... ## Required to install AWS Service Borker.
+echo "ip-10-2-1-20.eu-central-1.compute.internal" > /tmp/openshift_initial_masters
+
+###### /ODA ######
+
+
 qs_retry_command 50 ansible -m ping all
 
-ansible-playbook /usr/share/ansible/openshift-ansible/bootstrap_wrapper.yml > /var/log/bootstrap.log
-ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml >> /var/log/bootstrap.log
-ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml >> /var/log/bootstrap.log
+ansible-playbook -i /tmp/ansible_inventory.yaml /usr/share/ansible/openshift-ansible/bootstrap_wrapper.yml > /var/log/bootstrap.log
+ansible-playbook -i /tmp/ansible_inventory.yaml /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml >> /var/log/bootstrap.log
+ansible-playbook -i /tmp/ansible_inventory.yaml /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml >> /var/log/bootstrap.log
 
 #aws autoscaling resume-processes --auto-scaling-group-name ${OPENSHIFTMASTERASG} --scaling-processes HealthCheck --region ${AWS_REGION}
 
@@ -177,6 +207,7 @@ AWSSB_SETUP_HOST=$(head -n 1 /tmp/openshift_initial_masters)
 set +x
 OCP_PASS=$(aws secretsmanager get-secret-value --secret-id  ${OCP_PASS_ARN} --region ${AWS_REGION} --query SecretString --output text)
 ansible masters -a "htpasswd -b /etc/origin/master/htpasswd admin ${OCP_PASS}"
+#ansible masters -a "oc adm policy add-cluster-role-to-user cluster-admin admin"
 set -x
 
 mkdir -p ~/.kube/

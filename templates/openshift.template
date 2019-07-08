@@ -1260,15 +1260,31 @@ Resources:
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
-          quickstart:
+          cfg_node_keys:
             - GetPublicKey
             - AddPublicKey
+            - SetPrivateKey
+          cfg_networkmgr:
             - rpms
             - NetworkManager
         rpms:
           packages:
             yum:
               NetworkManager: []
+        NetworkManager:
+          commands:
+            start_enable_nm:
+              command: systemctl start NetworkManager && systemctl enable  NetworkManager
+              ignoreErrors: 'false'
+        SetPrivateKey:
+          files:
+            /root/.ssh/id_rsa:
+              content: !Sub |
+                #QuickStart Generated
+                ${GetRSA.PEM}
+              mode: '000400'
+              owner: root
+              group: root
         GetPublicKey:
           files:
             /root/.ssh/public.key:
@@ -1283,16 +1299,12 @@ Resources:
             append-publickey:
               command: cat /root/.ssh/public.key >>/root/.ssh/authorized_keys
               ignoreErrors: 'false'
-        NetworkManager:
-          commands:
-            start_enable_nm:
-              command: systemctl start NetworkManager && systemctl enable  NetworkManager
-              ignoreErrors: 'false'
     DependsOn:
       - GetRSA
       - CleanupPV
     Properties:
       SubnetId: !Ref 'PrivateSubnet1ID'
+      PrivateIpAddress: 10.2.1.20
       KeyName: !Ref 'KeyPairName'
       ImageId: !If
         - UseCustomAmi
@@ -1336,6 +1348,7 @@ Resources:
             export LAUNCH_CONFIG=OpenShiftMasterASLaunchConfig
             export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName}
             export LOG_GROUP=${OpenshiftLogGroup}
+            export INSTANCE_NAME=OpenShiftMasterEC2
             aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
             dos2unix bootstrap.sh
             chmod +x bootstrap.sh
@@ -1365,15 +1378,31 @@ Resources:
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
-          quickstart:
+          cfg_node_keys:
             - GetPublicKey
             - AddPublicKey
+            - SetPrivateKey
+          cfg_networkmgr:
             - rpms
             - NetworkManager
         rpms:
           packages:
             yum:
               NetworkManager: []
+        NetworkManager:
+          commands:
+            start_enable_nm:
+              command: systemctl start NetworkManager && systemctl enable  NetworkManager
+              ignoreErrors: 'false'
+        SetPrivateKey:
+          files:
+            /root/.ssh/id_rsa:
+              content: !Sub |
+                #QuickStart Generated
+                ${GetRSA.PEM}
+              mode: '000400'
+              owner: root
+              group: root
         GetPublicKey:
           files:
             /root/.ssh/public.key:
@@ -1386,18 +1415,14 @@ Resources:
         AddPublicKey:
           commands:
             append-publickey:
-              command: cat /root/.ssh/public.key >> /root/.ssh/authorized_keys
-              ignoreErrors: 'false'
-        NetworkManager:
-          commands:
-            start_enable_nm:
-              command: systemctl start NetworkManager && systemctl enable  NetworkManager
+              command: cat /root/.ssh/public.key >>/root/.ssh/authorized_keys
               ignoreErrors: 'false'
     DependsOn:
       - GetRSA
       - CleanupPV
     Properties:
       SubnetId: !Ref 'PrivateSubnet1ID'
+      PrivateIpAddress: 10.2.1.10
       KeyName: !Ref 'KeyPairName'
       ImageId: !If
         - UseCustomAmi
@@ -1437,6 +1462,7 @@ Resources:
             export LAUNCH_CONFIG=OpenShiftEtcdLaunchConfig
             export LOG_GROUP=${OpenshiftLogGroup}
             aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
+            export INSTANCE_NAME=OpenShiftEtcdEC2
             dos2unix bootstrap.sh
             chmod +x bootstrap.sh
             ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
@@ -1452,22 +1478,36 @@ Resources:
         Timeout: PT45M
 
 
-
-
   OpenShiftNodeEC2:
     Type: AWS::EC2::Instance
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
-          quickstart:
+          cfg_node_keys:
             - GetPublicKey
             - AddPublicKey
+            - SetPrivateKey
+          cfg_networkmgr:
             - rpms
             - NetworkManager
         rpms:
           packages:
             yum:
               NetworkManager: []
+        NetworkManager:
+          commands:
+            start_enable_nm:
+              command: systemctl start NetworkManager && systemctl enable  NetworkManager
+              ignoreErrors: 'false'
+        SetPrivateKey:
+          files:
+            /root/.ssh/id_rsa:
+              content: !Sub |
+                #QuickStart Generated
+                ${GetRSA.PEM}
+              mode: '000400'
+              owner: root
+              group: root
         GetPublicKey:
           files:
             /root/.ssh/public.key:
@@ -1482,16 +1522,12 @@ Resources:
             append-publickey:
               command: cat /root/.ssh/public.key >>/root/.ssh/authorized_keys
               ignoreErrors: 'false'
-        NetworkManager:
-          commands:
-            start_enable_nm:
-              command: systemctl start NetworkManager && systemctl enable  NetworkManager
-              ignoreErrors: 'false'
     DependsOn:
       - GetRSA
       - CleanupPV
     Properties:
       SubnetId: !Ref 'PrivateSubnet1ID'
+      PrivateIpAddress: 10.2.1.30
       KeyName: !Ref 'KeyPairName'
       ImageId: !If
         - UseCustomAmi
@@ -1534,6 +1570,7 @@ Resources:
             export OCP_VERSION=${OpenshiftContainerPlatformVersion}
             export LAUNCH_CONFIG=OpenShiftNodesLaunchConfig
             export LOG_GROUP=${OpenshiftLogGroup}
+            export INSTANCE_NAME=OpenShiftNodeEC2
             aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
             dos2unix bootstrap.sh
             chmod +x bootstrap.sh
@@ -1556,6 +1593,130 @@ Resources:
         Count: !Ref 'NumberOfNodes'
         Timeout: PT45M
 
+  AnsibleConfigServer:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          cfg_node_keys:
+            - GetPublicKey
+            - AddPublicKey
+            - SetPrivateKey
+          cfg_networkmgr:
+            - rpms
+            - NetworkManager
+        rpms:
+          packages:
+            yum:
+              NetworkManager: []
+        NetworkManager:
+          commands:
+            start_enable_nm:
+              command: systemctl start NetworkManager && systemctl enable  NetworkManager
+              ignoreErrors: 'false'
+        SetPrivateKey:
+          files:
+            /root/.ssh/id_rsa:
+              content: !Sub |
+                #QuickStart Generated
+                ${GetRSA.PEM}
+              mode: '000400'
+              owner: root
+              group: root
+        GetPublicKey:
+          files:
+            /root/.ssh/public.key:
+              content: !Sub |
+                #QuickStart Generated
+                ${GetRSA.PUB}
+              mode: '000400'
+              owner: root
+              group: root
+        AddPublicKey:
+          commands:
+            append-publickey:
+              command: cat /root/.ssh/public.key >>/root/.ssh/authorized_keys
+              ignoreErrors: 'false'
+    Properties:
+      KeyName: !Ref 'KeyPairName'
+      ImageId: !If
+        - UseCustomAmi
+        - !Ref 'AmiId'
+        - !FindInMap
+          - AWSAMIRegionMap
+          - !Ref 'AWS::Region'
+          - RHEL76HVM
+      IamInstanceProfile: !Ref 'SetupRoleProfile'
+      Tags:
+        - Key: Name
+          Value: ansible-configserver
+      InstanceType: !Ref 'MasterInstanceType'
+      NetworkInterfaces:
+        - DeleteOnTermination: true
+          AssociatePublicIpAddress: true
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref 'OpenShiftSecurityGroup'
+          SubnetId: !Ref 'PublicSubnet1ID'
+      UserData: !Base64
+        Fn::Sub:
+          - |
+            #!/bin/bash -x
+            export QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
+            export ENABLE_HAWKULAR=${HawkEnable}
+            export GET_ANSIBLE_FROM_GIT=${AnsibleFromGit}
+            export OCP_ANSIBLE_RELEASE=${OsbRelease}
+            export MASTER_ELBDNSNAME=${LbHostname}
+            export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName}
+            export OPENSHIFTMASTERINTERNALELB=${OpenShiftMasterInternalELB}
+            export OPENSHIFTMASTERINTERNALTGARN=${OpenShiftMasterInternalELBTargetGroup}
+            export AWS_REGION=${AWS::Region}
+            export CONTAINERACCESSELB=${ContainerAccessELB}
+            export OCP_VERSION=${OpenshiftContainerPlatformVersion}
+            export ANSIBLE_VERSION=${AnsibleVersion}
+            export RH_USER=${RedhatSubscriptionUserName}
+            export RH_CREDS_ARN='${RedhatSubscriptionSecret}'
+            export RH_POOLID=${RedhatSubscriptionPoolID}
+            export AWS_STACKNAME=${AWS::StackName}
+            export QS_S3URI=s3://${QSS3BucketName}/${QSS3KeyPrefix}
+            export QS_S3BUCKETNAME=${QSS3BucketName}
+            export OCP_PASS_ARN='${OpenShiftPasswordSecret}'
+            export AWS_STACKID=${AWS::StackId}
+            export ENABLE_AWSSB=${AWSServiceBroker}
+            export VPCID=${VPCID}
+            export ENABLE_AUTOMATIONBROKER=${AutomationBroker}
+            export ENABLE_CLUSTERCONSOLE=${ClusterConsole}
+            export ENABLE_GLUSTERFS=${GlusterFS}
+            export REGISTRY_BUCKET=${RegBucket}
+            export SB_ROLE=${SbRole}
+            export SB_TABLE=${SbTable}
+            export SB_VERSION=v1.0.0-beta.3
+            export SB_ACCOUNTID=${AWS::AccountId}
+            export LOG_GROUP=${OpenshiftLogGroup}
+            yum install -y git dos2unix
+            git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
+            export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
+            source $P
+            qs_bootstrap_pip || qs_err " pip bootstrap failed "
+            qs_aws-cfn-bootstrap || qs_err "cfn bootstrap failed"
+            pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err " awscli install failed "
+            aws s3 cp ${!QS_S3URI}scripts/ansibleconfigserver_bootstrap.sh ./bootstrap.sh
+            dos2unix bootstrap.sh
+            chmod +x bootstrap.sh
+            ./bootstrap.sh || qs_err " Openshift installation failed, see logs for details "
+            cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource AnsibleConfigServer --region ${AWS::Region}
+          -
+            S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
+            HawkEnable: !If [ EnableHawkular, "True", "False" ]
+            OsbRelease: !FindInMap [ OpenshiftVersionMap, !Ref 'OpenshiftContainerPlatformVersion', AnsiblePlaybookGitRepoTag ]
+            AnsibleVersion: !FindInMap [ OpenshiftVersionMap, !Ref 'OpenshiftContainerPlatformVersion', AnsibleVersion ]
+            LbHostname: !If [ UseCustomDomain, !If [ UseSubdomain, !Sub "${SubDomainPrefix}.${DomainName}", !Ref "DomainName" ], !GetAtt OpenShiftMasterELB.DNSName ]
+            RegBucket: !Ref RegistryBucket
+            SbRole: !If [ EnableAWSServiceBroker, !Ref ServiceBrokerRole, "" ]
+            SbTable: !If [ EnableAWSServiceBroker, !Ref ServiceBrokerTable, "" ]
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT360M
   
 
 
@@ -1853,129 +2014,6 @@ Resources:
       LoadBalancerArn: !Ref OpenShiftMasterInternalELB
       Port: 443
       Protocol: TCP
-  AnsibleConfigServer:
-    Type: AWS::EC2::Instance
-    Metadata:
-      AWS::CloudFormation::Init:
-        configSets:
-          cfg_node_keys:
-            - GetPublicKey
-            - AddPublicKey
-            - SetPrivateKey
-          cfg_networkmgr:
-            - rpms
-            - NetworkManager
-        rpms:
-          packages:
-            yum:
-              NetworkManager: []
-        NetworkManager:
-          commands:
-            start_enable_nm:
-              command: systemctl start NetworkManager && systemctl enable  NetworkManager
-              ignoreErrors: 'false'
-        SetPrivateKey:
-          files:
-            /root/.ssh/id_rsa:
-              content: !Sub |
-                #QuickStart Generated
-                ${GetRSA.PEM}
-              mode: '000400'
-              owner: root
-              group: root
-        GetPublicKey:
-          files:
-            /root/.ssh/public.key:
-              content: !Sub |
-                #QuickStart Generated
-                ${GetRSA.PUB}
-              mode: '000400'
-              owner: root
-              group: root
-        AddPublicKey:
-          commands:
-            append-publickey:
-              command: cat /root/.ssh/public.key >>/root/.ssh/authorized_keys
-              ignoreErrors: 'false'
-    Properties:
-      KeyName: !Ref 'KeyPairName'
-      ImageId: !If
-        - UseCustomAmi
-        - !Ref 'AmiId'
-        - !FindInMap
-          - AWSAMIRegionMap
-          - !Ref 'AWS::Region'
-          - RHEL76HVM
-      IamInstanceProfile: !Ref 'SetupRoleProfile'
-      Tags:
-        - Key: Name
-          Value: ansible-configserver
-      InstanceType: !Ref 'MasterInstanceType'
-      NetworkInterfaces:
-        - DeleteOnTermination: true
-          AssociatePublicIpAddress: true
-          DeviceIndex: '0'
-          GroupSet:
-            - !Ref 'OpenShiftSecurityGroup'
-          SubnetId: !Ref 'PublicSubnet1ID'
-      UserData: !Base64
-        Fn::Sub:
-          - |
-            #!/bin/bash -x
-            export QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
-            export ENABLE_HAWKULAR=${HawkEnable}
-            export GET_ANSIBLE_FROM_GIT=${AnsibleFromGit}
-            export OCP_ANSIBLE_RELEASE=${OsbRelease}
-            export MASTER_ELBDNSNAME=${LbHostname}
-            export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName}
-            export OPENSHIFTMASTERINTERNALELB=${OpenShiftMasterInternalELB}
-            export OPENSHIFTMASTERINTERNALTGARN=${OpenShiftMasterInternalELBTargetGroup}
-            export AWS_REGION=${AWS::Region}
-            export CONTAINERACCESSELB=${ContainerAccessELB}
-            export OCP_VERSION=${OpenshiftContainerPlatformVersion}
-            export ANSIBLE_VERSION=${AnsibleVersion}
-            export RH_USER=${RedhatSubscriptionUserName}
-            export RH_CREDS_ARN='${RedhatSubscriptionSecret}'
-            export RH_POOLID=${RedhatSubscriptionPoolID}
-            export AWS_STACKNAME=${AWS::StackName}
-            export QS_S3URI=s3://${QSS3BucketName}/${QSS3KeyPrefix}
-            export OCP_PASS_ARN='${OpenShiftPasswordSecret}'
-            export AWS_STACKID=${AWS::StackId}
-            export ENABLE_AWSSB=${AWSServiceBroker}
-            export VPCID=${VPCID}
-            export ENABLE_AUTOMATIONBROKER=${AutomationBroker}
-            export ENABLE_CLUSTERCONSOLE=${ClusterConsole}
-            export ENABLE_GLUSTERFS=${GlusterFS}
-            export REGISTRY_BUCKET=${RegBucket}
-            export SB_ROLE=${SbRole}
-            export SB_TABLE=${SbTable}
-            export SB_VERSION=v1.0.0-beta.3
-            export SB_ACCOUNTID=${AWS::AccountId}
-            export LOG_GROUP=${OpenshiftLogGroup}
-            yum install -y git dos2unix
-            git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
-            export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
-            source $P
-            qs_bootstrap_pip || qs_err " pip bootstrap failed "
-            qs_aws-cfn-bootstrap || qs_err "cfn bootstrap failed"
-            pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err " awscli install failed "
-            aws s3 cp ${!QS_S3URI}scripts/ansibleconfigserver_bootstrap.sh ./bootstrap.sh
-            dos2unix bootstrap.sh
-            chmod +x bootstrap.sh
-            ./bootstrap.sh || qs_err " Openshift installation failed, see logs for details "
-            cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource AnsibleConfigServer --region ${AWS::Region}
-          -
-            S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
-            HawkEnable: !If [ EnableHawkular, "True", "False" ]
-            OsbRelease: !FindInMap [ OpenshiftVersionMap, !Ref 'OpenshiftContainerPlatformVersion', AnsiblePlaybookGitRepoTag ]
-            AnsibleVersion: !FindInMap [ OpenshiftVersionMap, !Ref 'OpenshiftContainerPlatformVersion', AnsibleVersion ]
-            LbHostname: !If [ UseCustomDomain, !If [ UseSubdomain, !Sub "${SubDomainPrefix}.${DomainName}", !Ref "DomainName" ], !GetAtt OpenShiftMasterELB.DNSName ]
-            RegBucket: !Ref RegistryBucket
-            SbRole: !If [ EnableAWSServiceBroker, !Ref ServiceBrokerRole, "" ]
-            SbTable: !If [ EnableAWSServiceBroker, !Ref ServiceBrokerTable, "" ]
-    CreationPolicy:
-      ResourceSignal:
-        Timeout: PT360M
 
 Outputs:
   OpenShiftUI:
