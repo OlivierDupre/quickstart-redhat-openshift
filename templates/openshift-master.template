@@ -50,8 +50,17 @@ Metadata:
           - GlusterInstanceType
           - NumberOfGluster
           - AutomationBroker
-          
           - ClusterConsole
+      - Label:
+          default: OpenShift Auth configuration
+        Parameters:
+          - BindDN
+          - BindPassword
+          - LDAPAddress
+          - UseLDAPS
+          - RootCA
+          - LDAPPath
+          - LDAPSearchAttr
       - Label:
           default: Red Hat Subscription Information
         Parameters:
@@ -141,6 +150,20 @@ Metadata:
         default: Cluster Name
       ClusterConsole:
         default: Enable the cluster console (Requires OpenShift 3.11)
+      BindDN:
+        default: Bind DN
+      BindPassword:
+        default: Bind Password
+      LDAPAddress:
+        default: Host:Port of the LDAP server
+      UseLDAPS:
+        default: Whether to use LDAPS or not
+      RootCA
+        default: LDAPS RootCA
+      LDAPPath
+        default: Path of users in LDAP
+      LDAPSearchAttr
+        default: LDAP Attribute to search user
 Parameters:
   AmiId:
     Description: >-
@@ -215,7 +238,6 @@ Parameters:
     MinLength: '8'
     AllowedPattern: ^[^ \\']+$
     NoEcho: 'true'
-    Default: poc-aforge
   RedhatSubscriptionUserName:
     Description: Enter Redhat RHN User Name
     Type: String
@@ -415,6 +437,38 @@ Parameters:
     Description: Enable the Cluster Console
     Type: String
     AllowedValues: [ Enabled, Disabled ]
+  BindDN:
+    Default: "CN=SVC_AFC_AD,OU=Users,OU=aforge,DC=aforge,DC=corp"
+    Description: Bind DN of a user to search users in the LDAP
+    Type: String
+  BindPassword:
+    Default: ""
+    Description: Password for bind user
+    Type: String
+    NoEcho: 'true'
+  LDAPAddress:
+    Description: Host:Port of the LDAP Server 
+    Default: "aforge.corp"
+    Type: String
+  UseLDAPS:
+    Description: If yes, LDAPS will be used. Beware that if your LDAP uses a self signed certificate 
+      or a certificate signed by unknown entity (such as internal root CA), you'll need to provide it.
+    Default: 'false'
+    Type: String
+    AllowedValues: [ 'true', 'false' ]
+  RootCA:
+    Description: RootCA used to trust TLS connection to LDAP Server
+    Type: String
+  LDAPPath:
+    Description: Path where users are lcated in LDAP (CN=...,OU=...,DC=...,DC=...)
+    Type: String
+    Default: "ou=Users,ou=aforge,dc=aforge,dc=corp"
+  LDAPSearchAttr:
+    Description: LDAP Attribute to look user for
+    Type: String
+    Default: "sAMAccountName"
+    
+
 Conditions:
   CustomClusterName: !Not
     - !Equals
@@ -484,6 +538,14 @@ Resources:
         AutomationBroker: !Ref AutomationBroker
         AmiId: !Ref AmiId
         ClusterConsole: !Ref ClusterConsole
+        BindDN: !Ref BindDN
+        BindPassword: !Ref BindPassword
+        LDAPAddress: !Ref LDAPAddress
+        UseLDAPS: !Ref UseLDAPS
+        RootCA: !Ref RootCA
+        LDAPPath: !Ref LDAPPath
+        LDAPSearchAttr: !Ref LDAPSearchAttr
+        
 Outputs:
   OpenShiftUI:
     Description: The URL OpenShiftUI

@@ -48,10 +48,32 @@ OSEv3:
     openshift_master_console_port: '443'
     openshift_master_default_subdomain: MASTER_ELBDNSNAME
     openshift_master_identity_providers:
-    - challenge: 'true'
-      kind: HTPasswdPasswordIdentityProvider
-      login: 'true'
-      name: htpasswd_auth
+#    - challenge: 'true'
+#      kind: HTPasswdPasswordIdentityProvider
+#      login: 'true'
+#      name: htpasswd_auth
+    - name: "ADAFORGE"
+      challenge: true
+      login: true
+      mappingMethod: claim
+      provider:
+        apiVersion: v1
+        kind: LDAPPasswordIdentityProvider
+        attributes:
+          id:
+          - dn
+          email:
+          - mail
+          name:
+          - cn
+          preferredUsername:
+          - cn
+          - uid
+        bindDN: "BIND_DN"
+        bindPassword: "BIND_PWD"
+        insecure: LDAP_INSECURE
+        url: "LDAP_PROTOCOL://LDAP_ADDRESS/LDAP_PATH?LDAP_SEARCH_ATTR"
+
     openshift_metrics_cassandra_storage_type: dynamic
     openshift_metrics_hawkular_hostname: metrics.MASTER_ELBDNSNAME
     openshift_metrics_install_metrics: 'true'

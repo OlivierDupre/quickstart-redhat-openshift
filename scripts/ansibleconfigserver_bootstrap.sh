@@ -184,6 +184,20 @@ sed -i "s/REGISTRY_BUCKET/${REGISTRY_BUCKET}/g" /tmp/ansible_inventory.yaml
 sed -i "s/AWS_REGION/${AWS_REGION}/g" /tmp/ansible_inventory.yaml
 
 
+#LDAP Auth Config
+sed -i "s/BIND_DN/${BIND_DN}/g" /tmp/ansible_inventory.yaml
+sed -i "s/BIND_PWD/${BIND_PWD}/g" /tmp/ansible_inventory.yaml
+sed -i "s/LDAP_ADDRESS/${LDAP_ADDRESS}/g" /tmp/ansible_inventory.yaml
+sed -i "s/LDAP_PATH/${LDAP_PATH}/g" /tmp/ansible_inventory.yaml
+sed -i "s/LDAP_SEARCH_ATTR/${LDAP_SEARCH_ATTR}/g" /tmp/ansible_inventory.yaml
+#TODO : test variable USE_LDAPS and also provisionn ROOT_CA if any
+sed -i "s/LDAP_PROTOCOL/ldap/g" /tmp/ansible_inventory.yaml 
+
+
+
+
+
+
 mv /etc/ansible/hosts /etc/ansible/hosts.bak || true
 cp -f /tmp/ansible_inventory.yaml /etc/ansible/hosts
 

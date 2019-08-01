@@ -60,6 +60,16 @@ Metadata:
           - AutomationBroker
           - ClusterConsole
       - Label:
+          default: OpenShift Auth configuration
+        Parameters:
+          - BindDN
+          - BindPassword
+          - LDAPAddress
+          - UseLDAPS
+          - RootCA
+          - LDAPPath
+          - LDAPSearchAttr
+      - Label:
           default: Red Hat Subscription Information
         Parameters:
           - RedhatSubscriptionUserName
@@ -150,6 +160,20 @@ Metadata:
         default: OpenShift Automation Broker
       ClusterConsole:
         default: Enable the cluster console (requires OpenShift 3.11)
+      BindDN:
+        default: Bind DN
+      BindPassword:
+        default: Bind Password
+      LDAPAddress:
+        default: Host:Port of the LDAP server
+      UseLDAPS:
+        default: Whether to use LDAPS or not
+      RootCA
+        default: LDAPS RootCA
+      LDAPPath
+        default: Path of users in LDAP
+      LDAPSearchAttr
+        default: LDAP Attribute to search user
 Parameters:
   AmiId:
     Description: >-
@@ -420,6 +444,37 @@ Parameters:
     Description: Enable the Cluster Console
     Type: String
     AllowedValues: [ Enabled, Disabled ]
+  BindDN:
+    Default: "CN=SVC_AFC_AD,OU=Users,OU=aforge,DC=aforge,DC=corp"
+    Description: Bind DN of a user to search users in the LDAP
+    Type: String
+  BindPassword:
+    Default: ""
+    Description: Password for bind user
+    Type: String
+    NoEcho: 'true'
+  LDAPAddress:
+    Description: Host:Port of the LDAP Server 
+    Default: "aforge.corp"
+    Type: String
+  UseLDAPS:
+    Description: If yes, LDAPS will be used. Beware that if your LDAP uses a self signed certificate 
+      or a certificate signed by unknown entity (such as internal root CA), you'll need to provide it.
+    Default: 'false'
+    Type: String
+    AllowedValues: [ 'true', 'false' ]
+  RootCA:
+    Description: RootCA used to trust TLS connection to LDAP Server
+    Type: String
+  LDAPPath:
+    Description: Path where users are lcated in LDAP (CN=...,OU=...,DC=...,DC=...)
+    Type: String
+    Default: "ou=Users,ou=aforge,dc=aforge,dc=corp"
+  LDAPSearchAttr:
+    Description: LDAP Attribute to look user for
+    Type: String
+    Default: "sAMAccountName"
+    
 Rules:
   SubnetsInVPC:
     Assertions:
@@ -1693,6 +1748,13 @@ Resources:
             export SB_VERSION=v1.0.0-beta.3
             export SB_ACCOUNTID=${AWS::AccountId}
             export LOG_GROUP=${OpenshiftLogGroup}
+            export BIND_DN=${BindDN}
+            export BIND_PWD=${BindPassword}
+            export LDAP_ADDRESS=${LDAPAddress}
+            export USE_LDAPS=${UseLDAPS}
+            export ROOT_CA=${RootCA}
+            export LDAP_PATH=${LDAPPath}
+            export LDAP_SEARCH_ATTR=${LDAPSearchAttr}
             yum install -y git dos2unix
             git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
             export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
