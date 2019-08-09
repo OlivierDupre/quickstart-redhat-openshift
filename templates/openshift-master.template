@@ -407,7 +407,7 @@ Parameters:
       - "True"
       - "False"
   ClusterName:
-    Default: "poc-aforge"
+    Default: "aforge"
     Description: Custom cluster name for kubernetes.io/cluster/ tags, if left blank will use the stackname suffixed with the region
     Type: String
   ClusterConsole:
@@ -425,7 +425,6 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/aws-vpc.template'
-      # TemplateURL: !Sub 'https://aforge-aws-templates.s3.amazonaws.com/aforge-noASG/templates/aws-vpc.template'
       Parameters:
         AvailabilityZones: !Join [ ',', !Ref 'AvailabilityZones' ]
         KeyPairName: !Ref 'KeyPairName'
@@ -441,7 +440,6 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift.template'
-      # TemplateURL: !Sub 'https://aforge-aws-templates.s3.amazonaws.com/aforge-noASG/templates/openshift.template'
       Parameters:
         MasterInstanceType: !Ref 'MasterInstanceType'
         NodesInstanceType: !Ref 'NodesInstanceType'
