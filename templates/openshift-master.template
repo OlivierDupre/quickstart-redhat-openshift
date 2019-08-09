@@ -188,7 +188,7 @@ Parameters:
     AllowedPattern: ^[0-9a-zA-Z-/]*$
     ConstraintDescription: Quick Start key prefix can include numbers, lowercase letters,
       uppercase letters, hyphens (-), and forward slash (/).
-    Default: aforge-noASG/
+    Default: openshift-stack/
     Description: S3 key prefix for the Quick Start assets. Quick Start key prefix
       can include numbers, lowercase letters, uppercase letters, hyphens (-), and
       forward slash (/).
@@ -226,7 +226,7 @@ Parameters:
     AllowedPattern: ^[^ \\']+$
   RedhatSubscriptionPoolID:
     Description: Enter Redhat RHN PoolID
-    Default: 8a85f9996a6ee342016a92b055e15e16
+    Default: TBD
     Type: String
   OpenshiftContainerPlatformVersion:
     Description: OpenShift version to deploy
@@ -328,14 +328,14 @@ Parameters:
     Description: 'OPTIONAL: Route 53 Hosted Zone ID to use. If left blank route 53
       will not be configured and DNS must be setup manually If you specify this you must also specify DomainName'
     Type: String
-    Default: "Z3BFPMYJKZCJ79"
+    Default: "TBD"
   DomainName:
     Description: >-
       OPTIONAL: domain name configured for the cluster, if left blank self signed
       certificates will be used for TLS and the LoadBalancer's auto-generated hostname
       will be used for connections from outside the cluster.
     Type: String
-    Default: "ads-poc.com"
+    Default: "TBD"
   SubDomainPrefix:
     Default: ''
     Description: 'OPTIONAL: Subdomain to use, if left blank DomainName will be used
