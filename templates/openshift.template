@@ -428,7 +428,7 @@ Rules:
             - AWS::EC2::Subnet::Id
             - VpcId
           - !RefAll 'AWS::EC2::VPC::Id'
-        AssertDescription: All subnets must in the VPC
+        AssertDescription: All subnets must be in the VPC
 Mappings:
   AWSAMIRegionMap:
     eu-central-1:
