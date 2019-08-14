@@ -428,7 +428,7 @@ Rules:
             - AWS::EC2::Subnet::Id
             - VpcId
           - !RefAll 'AWS::EC2::VPC::Id'
-        AssertDescription: All subnets must in the VPC
+        AssertDescription: All subnets must be in the VPC
 Mappings:
   AWSAMIRegionMap:
     eu-central-1:
@@ -777,6 +777,24 @@ Resources:
                   - s3:DeleteObject
                 Resource:
                   - !Sub 'arn:aws:s3:::${LambdaZipsBucket}/${QSS3KeyPrefix}*'
+  AutoStartAndStopEc2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceEventsRole
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+      Path: /
+      RoleName: AutoStartAndStopEc2
   CopyZipsFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -844,6 +862,129 @@ Resources:
               finally:
                   timer.cancel()
                   cfnresponse.send(event, context, status, {}, None)
+  AutoStartMasterFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Autostart master based on an event
+      Handler: index.handler
+      Runtime: python2.7
+      Role: !GetAtt 'AutoStartAndStopEc2Role.Arn'
+      Timeout: 240
+      Code:
+        ZipFile: |
+          # Python 2.7
+          import boto3
+          import logging
+          import json,ast
+
+          #setup simple logging for INFO
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          #define the connection
+          ec2 = boto3.resource('ec2')
+
+          # This lambda must be call with an input event to define the `goal`: 'start' or 'stop' the EC2, and fine tune the `filters` to find the EC2 to start or stop.
+          # e.g.
+          # {
+          #   "goal": "stop",
+          #   "filters": [
+          #     {
+          #       "Name": "tag:role",
+          #       "Values": ["nodes"]
+          #     },
+          #     {
+          #       "Name": "tag:project",
+          #       "Values": ["aforge"]
+          #     }
+          #   ]
+          # }
+          def lambda_handler(event, context):
+              try:
+                  goal = ast.literal_eval(json.dumps(event['goal']))
+              except:
+                  goal = "nothing"
+              print "Goal: ", goal
+              
+              try:
+                  event_filters = ast.literal_eval(json.dumps(event['filters']))
+              except:
+                  print "No filters provided to this lambda"
+              print "Filters: ", event_filters
+                  
+              if goal == 'start':
+                  start_ec2(event, context, event_filters)
+              elif goal == 'stop':
+                  stop_ec2(event, context, event_filters)
+              else:
+                  print "No goal provide to this lambda"
+
+          def start_ec2(event, context, event_filters):
+              # Use the filter() method of the instances collection to retrieve all running EC2 instances.
+              local_filters = [
+                  {
+                      'Name': 'instance-state-name', 
+                      'Values': ['stopped']
+                  },
+                  {
+                      'Name': 'tag:AutoStart',
+                      'Values': ['true']
+                  }
+              ]
+              
+              filters = local_filters + event_filters
+              
+              print("Start filters", filters)
+
+              #filter the instances
+              instances = ec2.instances.filter(Filters=filters)
+
+              #locate all running instances
+              filteredInstances = [instance.id for instance in instances]
+              
+              #print the instances for logging purposes
+              #print RunningInstances 
+              
+              #make sure there are actually instances to shut down. 
+              if len(filteredInstances) > 0:
+                  #perform the shutdown
+                  Starting = ec2.instances.filter(InstanceIds=filteredInstances).start()
+                  print Starting
+              else:
+                  print "No instances to start using these filters. ", filters
+
+          def stop_ec2(event, context, event_filters):
+              # Use the filter() method of the instances collection to retrieve all running EC2 instances.
+            # Use the filter() method of the instances collection to retrieve all running EC2 instances.
+              # TODO: Set here the filters needed to uniquely identify the instances that must be stopped.
+              local_filters = [
+                  {
+                      'Name': 'instance-state-name', 
+                      'Values': ['running']
+                  },
+                  {
+                      'Name': 'tag:AutoStop',
+                      'Values': ['true']
+                  }
+              ]
+              
+              filters = local_filters + event_filters
+              
+              print("Stop filters",filters)
+              
+              #filter the instances
+              instances = ec2.instances.filter(Filters=filters)
+
+              #locate all running instances
+              filteredInstances = [instance.id for instance in instances]
+
+              #make sure there are actually instances to shut down. 
+              if len(filteredInstances) > 0:
+                  #perform the shutdown
+                  Stopping = ec2.instances.filter(InstanceIds=filteredInstances).stop()
+                  print Stopping
+              else:
+                  print "No instances to stop using these filters. ", filters
 
   OutputBucket:
     Type: AWS::S3::Bucket
@@ -1255,6 +1396,132 @@ Resources:
     Properties:
       RetentionInDays: 7
 
+
+  AnsibleConfigServer:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          cfg_node_keys:
+            - GetPublicKey
+            - AddPublicKey
+            - SetPrivateKey
+          cfg_networkmgr:
+            - rpms
+            - NetworkManager
+        rpms:
+          packages:
+            yum:
+              NetworkManager: []
+        NetworkManager:
+          commands:
+            start_enable_nm:
+              command: systemctl start NetworkManager && systemctl enable  NetworkManager
+              ignoreErrors: 'false'
+        SetPrivateKey:
+          files:
+            /root/.ssh/id_rsa:
+              content: !Sub |
+                #QuickStart Generated
+                ${GetRSA.PEM}
+              mode: '000400'
+              owner: root
+              group: root
+        GetPublicKey:
+          files:
+            /root/.ssh/public.key:
+              content: !Sub |
+                #QuickStart Generated
+                ${GetRSA.PUB}
+              mode: '000400'
+              owner: root
+              group: root
+        AddPublicKey:
+          commands:
+            append-publickey:
+              command: cat /root/.ssh/public.key >>/root/.ssh/authorized_keys
+              ignoreErrors: 'false'
+    Properties:
+      KeyName: !Ref 'KeyPairName'
+      ImageId: !If
+        - UseCustomAmi
+        - !Ref 'AmiId'
+        - !FindInMap
+          - AWSAMIRegionMap
+          - !Ref 'AWS::Region'
+          - RHEL76HVM
+      IamInstanceProfile: !Ref 'SetupRoleProfile'
+      Tags:
+        - Key: Name
+          Value: ansible-configserver
+      InstanceType: !Ref 'MasterInstanceType'
+      NetworkInterfaces:
+        - DeleteOnTermination: true
+          AssociatePublicIpAddress: true
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref 'OpenShiftSecurityGroup'
+          SubnetId: !Ref 'PublicSubnet1ID'
+      UserData: !Base64
+        Fn::Sub:
+          - |
+            #!/bin/bash -x
+            export QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
+            export ENABLE_HAWKULAR=${HawkEnable}
+            export GET_ANSIBLE_FROM_GIT=${AnsibleFromGit}
+            export OCP_ANSIBLE_RELEASE=${OsbRelease}
+            export MASTER_ELBDNSNAME=${LbHostname}
+            export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName}
+            export OPENSHIFTMASTERINTERNALELB=${OpenShiftMasterInternalELB}
+            export OPENSHIFTMASTERINTERNALTGARN=${OpenShiftMasterInternalELBTargetGroup}
+            export AWS_REGION=${AWS::Region}
+            export CONTAINERACCESSELB=${ContainerAccessELB}
+            export OCP_VERSION=${OpenshiftContainerPlatformVersion}
+            export ANSIBLE_VERSION=${AnsibleVersion}
+            export RH_USER=${RedhatSubscriptionUserName}
+            export RH_CREDS_ARN='${RedhatSubscriptionSecret}'
+            export RH_POOLID=${RedhatSubscriptionPoolID}
+            export AWS_STACKNAME=${AWS::StackName}
+            export QS_S3URI=s3://${QSS3BucketName}/${QSS3KeyPrefix}
+            export QS_S3BUCKETNAME=${QSS3BucketName}
+            export OCP_PASS_ARN='${OpenShiftPasswordSecret}'
+            export AWS_STACKID=${AWS::StackId}
+            export ENABLE_AWSSB=${AWSServiceBroker}
+            export VPCID=${VPCID}
+            export ENABLE_AUTOMATIONBROKER=${AutomationBroker}
+            export ENABLE_CLUSTERCONSOLE=${ClusterConsole}
+            export ENABLE_GLUSTERFS=${GlusterFS}
+            export REGISTRY_BUCKET=${RegBucket}
+            export SB_ROLE=${SbRole}
+            export SB_TABLE=${SbTable}
+            export SB_VERSION=v1.0.0-beta.3
+            export SB_ACCOUNTID=${AWS::AccountId}
+            export LOG_GROUP=${OpenshiftLogGroup}
+            yum install -y git dos2unix
+            git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
+            export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
+            source $P
+            qs_bootstrap_pip || qs_err " pip bootstrap failed "
+            qs_aws-cfn-bootstrap || qs_err "cfn bootstrap failed"
+            pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err " awscli install failed "
+            aws s3 cp ${!QS_S3URI}scripts/ansibleconfigserver_bootstrap.sh ./bootstrap.sh
+            dos2unix bootstrap.sh
+            chmod +x bootstrap.sh
+            ./bootstrap.sh || qs_err " Openshift installation failed, see logs for details "
+            cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource AnsibleConfigServer --region ${AWS::Region}
+          -
+            S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
+            HawkEnable: !If [ EnableHawkular, "True", "False" ]
+            OsbRelease: !FindInMap [ OpenshiftVersionMap, !Ref 'OpenshiftContainerPlatformVersion', AnsiblePlaybookGitRepoTag ]
+            AnsibleVersion: !FindInMap [ OpenshiftVersionMap, !Ref 'OpenshiftContainerPlatformVersion', AnsibleVersion ]
+            LbHostname: !If [ UseCustomDomain, !If [ UseSubdomain, !Sub "${SubDomainPrefix}.${DomainName}", !Ref "DomainName" ], !GetAtt OpenShiftMasterELB.DNSName ]
+            RegBucket: !Ref RegistryBucket
+            SbRole: !If [ EnableAWSServiceBroker, !Ref ServiceBrokerRole, "" ]
+            SbTable: !If [ EnableAWSServiceBroker, !Ref ServiceBrokerTable, "" ]
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT360M
+
   OpenShiftMasterEC2:
     Type: AWS::EC2::Instance
     Metadata:
@@ -1592,134 +1859,6 @@ Resources:
       ResourceSignal:
         Count: !Ref 'NumberOfNodes'
         Timeout: PT45M
-
-  AnsibleConfigServer:
-    Type: AWS::EC2::Instance
-    Metadata:
-      AWS::CloudFormation::Init:
-        configSets:
-          cfg_node_keys:
-            - GetPublicKey
-            - AddPublicKey
-            - SetPrivateKey
-          cfg_networkmgr:
-            - rpms
-            - NetworkManager
-        rpms:
-          packages:
-            yum:
-              NetworkManager: []
-        NetworkManager:
-          commands:
-            start_enable_nm:
-              command: systemctl start NetworkManager && systemctl enable  NetworkManager
-              ignoreErrors: 'false'
-        SetPrivateKey:
-          files:
-            /root/.ssh/id_rsa:
-              content: !Sub |
-                #QuickStart Generated
-                ${GetRSA.PEM}
-              mode: '000400'
-              owner: root
-              group: root
-        GetPublicKey:
-          files:
-            /root/.ssh/public.key:
-              content: !Sub |
-                #QuickStart Generated
-                ${GetRSA.PUB}
-              mode: '000400'
-              owner: root
-              group: root
-        AddPublicKey:
-          commands:
-            append-publickey:
-              command: cat /root/.ssh/public.key >>/root/.ssh/authorized_keys
-              ignoreErrors: 'false'
-    Properties:
-      KeyName: !Ref 'KeyPairName'
-      ImageId: !If
-        - UseCustomAmi
-        - !Ref 'AmiId'
-        - !FindInMap
-          - AWSAMIRegionMap
-          - !Ref 'AWS::Region'
-          - RHEL76HVM
-      IamInstanceProfile: !Ref 'SetupRoleProfile'
-      Tags:
-        - Key: Name
-          Value: ansible-configserver
-      InstanceType: !Ref 'MasterInstanceType'
-      NetworkInterfaces:
-        - DeleteOnTermination: true
-          AssociatePublicIpAddress: true
-          DeviceIndex: '0'
-          GroupSet:
-            - !Ref 'OpenShiftSecurityGroup'
-          SubnetId: !Ref 'PublicSubnet1ID'
-      UserData: !Base64
-        Fn::Sub:
-          - |
-            #!/bin/bash -x
-            export QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
-            export ENABLE_HAWKULAR=${HawkEnable}
-            export GET_ANSIBLE_FROM_GIT=${AnsibleFromGit}
-            export OCP_ANSIBLE_RELEASE=${OsbRelease}
-            export MASTER_ELBDNSNAME=${LbHostname}
-            export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName}
-            export OPENSHIFTMASTERINTERNALELB=${OpenShiftMasterInternalELB}
-            export OPENSHIFTMASTERINTERNALTGARN=${OpenShiftMasterInternalELBTargetGroup}
-            export AWS_REGION=${AWS::Region}
-            export CONTAINERACCESSELB=${ContainerAccessELB}
-            export OCP_VERSION=${OpenshiftContainerPlatformVersion}
-            export ANSIBLE_VERSION=${AnsibleVersion}
-            export RH_USER=${RedhatSubscriptionUserName}
-            export RH_CREDS_ARN='${RedhatSubscriptionSecret}'
-            export RH_POOLID=${RedhatSubscriptionPoolID}
-            export AWS_STACKNAME=${AWS::StackName}
-            export QS_S3URI=s3://${QSS3BucketName}/${QSS3KeyPrefix}
-            export QS_S3BUCKETNAME=${QSS3BucketName}
-            export OCP_PASS_ARN='${OpenShiftPasswordSecret}'
-            export AWS_STACKID=${AWS::StackId}
-            export ENABLE_AWSSB=${AWSServiceBroker}
-            export VPCID=${VPCID}
-            export ENABLE_AUTOMATIONBROKER=${AutomationBroker}
-            export ENABLE_CLUSTERCONSOLE=${ClusterConsole}
-            export ENABLE_GLUSTERFS=${GlusterFS}
-            export REGISTRY_BUCKET=${RegBucket}
-            export SB_ROLE=${SbRole}
-            export SB_TABLE=${SbTable}
-            export SB_VERSION=v1.0.0-beta.3
-            export SB_ACCOUNTID=${AWS::AccountId}
-            export LOG_GROUP=${OpenshiftLogGroup}
-            yum install -y git dos2unix
-            git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
-            export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
-            source $P
-            qs_bootstrap_pip || qs_err " pip bootstrap failed "
-            qs_aws-cfn-bootstrap || qs_err "cfn bootstrap failed"
-            pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err " awscli install failed "
-            aws s3 cp ${!QS_S3URI}scripts/ansibleconfigserver_bootstrap.sh ./bootstrap.sh
-            dos2unix bootstrap.sh
-            chmod +x bootstrap.sh
-            ./bootstrap.sh || qs_err " Openshift installation failed, see logs for details "
-            cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource AnsibleConfigServer --region ${AWS::Region}
-          -
-            S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
-            HawkEnable: !If [ EnableHawkular, "True", "False" ]
-            OsbRelease: !FindInMap [ OpenshiftVersionMap, !Ref 'OpenshiftContainerPlatformVersion', AnsiblePlaybookGitRepoTag ]
-            AnsibleVersion: !FindInMap [ OpenshiftVersionMap, !Ref 'OpenshiftContainerPlatformVersion', AnsibleVersion ]
-            LbHostname: !If [ UseCustomDomain, !If [ UseSubdomain, !Sub "${SubDomainPrefix}.${DomainName}", !Ref "DomainName" ], !GetAtt OpenShiftMasterELB.DNSName ]
-            RegBucket: !Ref RegistryBucket
-            SbRole: !If [ EnableAWSServiceBroker, !Ref ServiceBrokerRole, "" ]
-            SbTable: !If [ EnableAWSServiceBroker, !Ref ServiceBrokerTable, "" ]
-    CreationPolicy:
-      ResourceSignal:
-        Timeout: PT360M
-  
-
-
 
   CleanupPVRole:
     Type: AWS::IAM::Role
