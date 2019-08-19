@@ -33,6 +33,10 @@ log_stream_name = ${INSTANCE_ID}/var/log/openshift-quickstart-scaling.log
 initial_position = start_of_file
 datetime_format = %b %d %H:%M:%S
 EOF
+
+# Reload the daemon
+systemctl daemon-reload || true
+
 systemctl start awslogs || true
 
 if [ -f /quickstart/pre-install.sh ]

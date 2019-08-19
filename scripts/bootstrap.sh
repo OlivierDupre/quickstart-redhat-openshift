@@ -17,6 +17,10 @@ initial_position = start_of_file
 datetime_format = %b %d %H:%M:%S
 
 EOF
+
+# Reload the daemon
+systemctl daemon-reload
+
 systemctl start awslogs || true
 
 if [ -f /quickstart/pre-install.sh ]
