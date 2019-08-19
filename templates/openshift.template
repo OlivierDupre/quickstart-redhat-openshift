@@ -25,8 +25,8 @@ Metadata:
         Parameters:
           - DomainName
           - HostedZoneID
-          - SubDomainPrefix
-          - CertificateArn
+          # - SubDomainPrefix
+          # - CertificateArn
       - Label:
           default: Amazon EC2 Configuration
         Parameters:
@@ -35,29 +35,29 @@ Metadata:
       - Label:
           default: OpenShift Hosts Configuration
         Parameters:
-          - NumberOfMaster
-          - NumberOfEtcd
+          # - NumberOfMaster
+          # - NumberOfEtcd
           - NumberOfNodes
-          - MasterInstanceType
-          - EtcdInstanceType
+          # - MasterInstanceType
+          # - EtcdInstanceType
           - NodesInstanceType
           - OpenShiftAdminPassword
       - Label:
           default: OpenShift Configuration
         Parameters:
-          - OpenshiftContainerPlatformVersion
-          - AWSServiceBroker
-          - HawkularMetrics
+          # - OpenshiftContainerPlatformVersion
+          # - AWSServiceBroker
+          # - HawkularMetrics
           - AnsibleFromGit
           - ClusterName
-          - GlusterFS
-          - GlusterStorageSize
-          - GlusterStorageType
-          - GlusterStorageIops
-          - GlusterStorageEncrypted
-          - GlusterInstanceType
-          - NumberOfGluster
-          - AutomationBroker
+          # - GlusterFS
+          # - GlusterStorageSize
+          # - GlusterStorageType
+          # - GlusterStorageIops
+          # - GlusterStorageEncrypted
+          # - GlusterInstanceType
+          # - NumberOfGluster
+          # - AutomationBroker
           - ClusterConsole
       - Label:
           default: Red Hat Subscription Information
@@ -70,7 +70,7 @@ Metadata:
         Parameters:
           - QSS3BucketName
           - QSS3KeyPrefix
-          - OutputBucketName
+          # - OutputBucketName
     ParameterLabels:
       KeyPairName:
         default: SSH Key Name
@@ -223,10 +223,9 @@ Parameters:
     Type: String
   OpenshiftContainerPlatformVersion:
     Description: OpenShift version to deploy
-    Default: '3.10'
+    Default: '3.11'
     Type: String
     AllowedValues:
-      - '3.10'
       - '3.11'
   VPCCIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
