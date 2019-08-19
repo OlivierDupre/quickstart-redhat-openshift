@@ -862,7 +862,7 @@ Resources:
               finally:
                   timer.cancel()
                   cfnresponse.send(event, context, status, {}, None)
-  AutoStartMasterFunction:
+  AutoStopAndStartEc2Function:
     Type: AWS::Lambda::Function
     Properties:
       Description: Autostart master based on an event
@@ -985,6 +985,16 @@ Resources:
                   print Stopping
               else:
                   print "No instances to stop using these filters. ", filters
+  AutoStartEtcdTrigger:
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: Starts Etcd instances
+      Name: EtcdAutoStart
+      RoleArn: 'AutoStartAndStopEc2Role.Arn'
+      ScheduleExpression: 30 6 ? * MON-FRI *
+      State: ENABLED
+      Targets: 
+        - !GetAtt 'AutoStopAndStartEc2Function.Arn'
 
   OutputBucket:
     Type: AWS::S3::Bucket
