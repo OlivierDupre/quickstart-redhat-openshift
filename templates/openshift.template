@@ -992,8 +992,10 @@ Resources:
       RoleArn: 'AutoStartAndStopEc2Role.Arn'
       ScheduleExpression: 30 6 ? * MON-FRI *
       State: ENABLED
-      Targets: 
-        - !GetAtt 'AutoStopAndStartEc2Function.Arn'
+      Targets: [{
+        "Arn": { "Fn::GetAtt": ["AutoStopAndStartEc2Function", "Arn"] },
+        "Id": "TargetAutoStopAndStartEc2Function"
+      }]
 
   OutputBucket:
     Type: AWS::S3::Bucket
