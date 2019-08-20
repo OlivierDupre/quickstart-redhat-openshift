@@ -984,6 +984,7 @@ Resources:
                   print Stopping
               else:
                   print "No instances to stop using these filters. ", filters
+
   AutoStartEtcdTrigger:
     Type: AWS::Events::Rule
     Properties: 
@@ -992,10 +993,13 @@ Resources:
       RoleArn: 'AutoStartAndStopEc2Role.Arn'
       ScheduleExpression: 30 6 ? * MON-FRI *
       State: ENABLED
-      Targets: [{
-        "Arn": { "Fn::GetAtt": ["AutoStopAndStartEc2Function", "Arn"] },
-        "Id": "TargetAutoStopAndStartEc2Function"
-      }]
+      Targets: 
+        - 
+          Arn: 
+            Fn::GetAtt: 
+              - "AutoStopAndStartEc2Function"
+              - "Arn"
+          Id: "TargetAutoStopAndStartEc2Function"
 
   OutputBucket:
     Type: AWS::S3::Bucket
