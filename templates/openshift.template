@@ -1612,6 +1612,8 @@ Resources:
         Fn::Sub:
           - |
             #!/bin/bash -x
+            echo "Listing home dir content $(ls -alh ~)" >> /root/install.log
+
             export QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
             yum install -y git dos2unix
             git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
@@ -1631,10 +1633,19 @@ Resources:
             export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName}
             export LOG_GROUP=${OpenshiftLogGroup}
             export INSTANCE_NAME=OpenShiftMasterEC2
+            if [ -f ~/redhat_ose-register.sh ]; then
+              cp ~/redhat_ose-register.sh ~/redhat_ose-register.sh.bkp
+            fi
+            aws s3 cp ${!QS_S3URI}scripts/redhat_ose-register-3.11.sh ~/redhat_ose-register.sh
+            dos2unix ~/redhat_ose-register.sh
+            chmod +x ~/redhat_ose-register.sh
+
             aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
             dos2unix bootstrap.sh
             chmod +x bootstrap.sh
+            echo "Bootstrapping from ${PWD}" >> /root/install.log
             ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
+            echo "Bootstrapped" >> /root/install.log
             echo "$(curl http://169.254.169.254/latest/meta-data/local-ipv4) ${OpenShiftMasterInternalELB.DNSName}" >> /etc/hosts
             cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource OpenShiftMasterEC2 --region ${AWS::Region}
           -

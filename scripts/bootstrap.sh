@@ -20,7 +20,6 @@ EOF
 
 # Reload the daemon
 systemctl daemon-reload || true
-
 systemctl start awslogs || true
 
 if [ -f /quickstart/pre-install.sh ]
@@ -33,6 +32,7 @@ qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || true
 qs_retry_command 10 yum -y install jq
 qs_retry_command 25 aws s3 cp ${QS_S3URI}scripts/redhat_ose-register-${OCP_VERSION}.sh ~/redhat_ose-register.sh
 chmod 755 ~/redhat_ose-register.sh
+echo "Registring RedHat OSE" >> /root/install.log
 qs_retry_command 25 ~/redhat_ose-register.sh ${RH_CREDS_ARN}
 
 mkdir -p /etc/aws/
@@ -41,7 +41,7 @@ printf "KubernetesClusterTag='kubernetes.io/cluster/${AWS_STACKNAME}-${AWS_REGIO
 printf "KubernetesClusterID=owned\n" >> /etc/aws/aws.conf
 
 if [ "${INSTANCE_NAME}" != "OpenShiftEtcdEC2" ]; then
-    echo "Installing docker" > /root/install.log
+    echo "Installing docker" >> /root/install.log
     qs_retry_command 10 yum install docker-client-1.13.1 docker-common-1.13.1 docker-rhel-push-plugin-1.13.1 docker-1.13.1 -y
     systemctl enable docker.service
     qs_retry_command 20 'systemctl start docker.service'

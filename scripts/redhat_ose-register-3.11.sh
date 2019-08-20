@@ -11,10 +11,12 @@ REDHAT_USERNAME=$(echo ${CREDS} | jq -r .user)
 REDHAT_PASSWORD=$(echo ${CREDS} | jq -r .password)
 REDHAT_POOLID=$(echo ${CREDS} | jq -r .poolid)
 
-echo -e "REDHAT_USERNAME=${REDHAT_USERNAME}\nREDHAT_PASSWORD=${REDHAT_PASSWORD}\nREDHAT_POOLID=${REDHAT_POOLID}\nINSTANCE_ID=${INSTANCE_ID}" > /root/redhat_ose-register-3.11.log
+echo -e "Registring subscription man with REDHAT_USERNAME=${REDHAT_USERNAME}\nREDHAT_PASSWORD=${REDHAT_PASSWORD}\nINSTANCE_ID=${INSTANCE_ID}" >> /root/install.log
 
 qs_retry_command 20 subscription-manager register --username=${REDHAT_USERNAME} --password=${REDHAT_PASSWORD} --force
+echo -e "Registered.\nAttaching to pool id: REDHAT_POOLID=${REDHAT_POOLID}" >> /root/install.log
 qs_retry_command 20 subscription-manager attach --pool=${REDHAT_POOLID}
+echo -e "Attached. Status: $(subscription-manager status)" >> /root/install.log
 qs_retry_command 20 subscription-manager status
 qs_retry_command 20 subscription-manager repos --enable="rhel-7-server-rpms" \
     --enable="rhel-7-server-extras-rpms" \
@@ -26,4 +28,6 @@ qs_retry_command 20 subscription-manager repos --enable="rhel-7-server-rpms" \
 
 var=($(subscription-manager identity))
 UUID="${var[2]}"
+
+echo -e "Creating tag Key=UUID,Value=$UUID for instance ${INSTANCE_ID}" >> /root/install.log
 aws ec2 create-tags --resources ${INSTANCE_ID} --tags Key=UUID,Value=$UUID --region ${AWS_REGION}
