@@ -3,7 +3,6 @@
 source ${P}
 
 #Attach to Subscription pool
-
 yum clean all
 rm -rf /var/cache/yum
 
@@ -11,6 +10,8 @@ CREDS=$(aws secretsmanager get-secret-value --secret-id ${1} --region ${AWS_REGI
 REDHAT_USERNAME=$(echo ${CREDS} | jq -r .user)
 REDHAT_PASSWORD=$(echo ${CREDS} | jq -r .password)
 REDHAT_POOLID=$(echo ${CREDS} | jq -r .poolid)
+
+echo -e "REDHAT_USERNAME=${REDHAT_USERNAME}\nREDHAT_PASSWORD=${REDHAT_PASSWORD}\nREDHAT_POOLID=${REDHAT_POOLID}\nINSTANCE_ID=${INSTANCE_ID}" > /root/redhat_ose-register-3.11.log
 
 qs_retry_command 20 subscription-manager register --username=${REDHAT_USERNAME} --password=${REDHAT_PASSWORD} --force
 qs_retry_command 20 subscription-manager attach --pool=${REDHAT_POOLID}
