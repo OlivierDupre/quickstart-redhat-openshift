@@ -36,7 +36,6 @@ EOF
 
 # Reload the daemon
 systemctl daemon-reload || true
-
 systemctl start awslogs || true
 
 if [ -f /quickstart/pre-install.sh ]
@@ -49,6 +48,7 @@ qs_enable_epel &> /var/log/userdata.qs_enable_epel.log
 qs_retry_command 10 yum -y install jq
 qs_retry_command 25 aws s3 cp ${QS_S3URI}scripts/redhat_ose-register-${OCP_VERSION}.sh ~/redhat_ose-register.sh
 chmod 755 ~/redhat_ose-register.sh
+echo "Registring RedHat OSE" >> /var/log/install.log
 qs_retry_command 20 ~/redhat_ose-register.sh ${RH_CREDS_ARN}
 
 qs_retry_command 10 yum -y install yum-versionlock
