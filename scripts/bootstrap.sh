@@ -19,7 +19,7 @@ datetime_format = %b %d %H:%M:%S
 EOF
 
 # Reload the daemon
-systemctl daemon-reload
+systemctl daemon-reload || true
 
 systemctl start awslogs || true
 
@@ -41,6 +41,7 @@ printf "KubernetesClusterTag='kubernetes.io/cluster/${AWS_STACKNAME}-${AWS_REGIO
 printf "KubernetesClusterID=owned\n" >> /etc/aws/aws.conf
 
 if [ "${INSTANCE_NAME}" != "OpenShiftEtcdEC2" ]; then
+    echo "Installing docker" > /root/install.log
     qs_retry_command 10 yum install docker-client-1.13.1 docker-common-1.13.1 docker-rhel-push-plugin-1.13.1 docker-1.13.1 -y
     systemctl enable docker.service
     qs_retry_command 20 'systemctl start docker.service'
@@ -49,6 +50,8 @@ if [ "${INSTANCE_NAME}" != "OpenShiftEtcdEC2" ]; then
     echo "VG=docker-vg" >>/etc/sysconfig/docker-storage-setup
     echo "STORAGE_DRIVER=devicemapper" >> /etc/sysconfig/docker-storage-setup
     systemctl stop docker
+    echo "Reloading docker daemon conf" >> /root/install.log
+    systemctl daemon-reload
     rm -rf /var/lib/docker
     docker-storage-setup
     qs_retry_command 10 systemctl start docker
@@ -68,6 +71,7 @@ systemctl restart systemd-logind
 
 cd /tmp
 qs_retry_command 10 wget https://s3-us-west-1.amazonaws.com/amazon-ssm-us-west-1/latest/linux_amd64/amazon-ssm-agent.rpm
+echo "Installing SSM agent" >> /root/install.log
 qs_retry_command 10 yum install -y ./amazon-ssm-agent.rpm
 systemctl start amazon-ssm-agent
 systemctl enable amazon-ssm-agent
