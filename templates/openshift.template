@@ -1519,17 +1519,11 @@ Resources:
             qs_bootstrap_pip || qs_err " pip bootstrap failed "
             qs_aws-cfn-bootstrap || qs_err "cfn bootstrap failed"
             pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err " awscli install failed "
-            if [ -f ~/redhat_ose-register.sh ]; then
-              cp ~/redhat_ose-register.sh ~/redhat_ose-register.sh.bkp
-            fi
-            aws s3 cp ${!QS_S3URI}scripts/redhat_ose-register-3.11.sh ~/redhat_ose-register.sh
-            dos2unix ~/redhat_ose-register.sh
-            chmod +x ~/redhat_ose-register.sh
 
             aws s3 cp ${!QS_S3URI}scripts/ansibleconfigserver_bootstrap.sh ./bootstrap.sh
             dos2unix bootstrap.sh
             chmod +x bootstrap.sh
-            echo "Bootstrapping from ${PWD}" >> /var/log/install.log
+            echo "Bootstrapping from ${!PWD}" >> /var/log/install.log
             ./bootstrap.sh || qs_err " Openshift installation failed, see logs for details "
             cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource AnsibleConfigServer --region ${AWS::Region}
           -
@@ -1641,17 +1635,11 @@ Resources:
             export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName}
             export LOG_GROUP=${OpenshiftLogGroup}
             export INSTANCE_NAME=OpenShiftMasterEC2
-            if [ -f ~/redhat_ose-register.sh ]; then
-              cp ~/redhat_ose-register.sh ~/redhat_ose-register.sh.bkp
-            fi
-            aws s3 cp ${!QS_S3URI}scripts/redhat_ose-register-3.11.sh ~/redhat_ose-register.sh
-            dos2unix ~/redhat_ose-register.sh
-            chmod +x ~/redhat_ose-register.sh
 
             aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
             dos2unix bootstrap.sh
             chmod +x bootstrap.sh
-            echo "Bootstrapping from $PWD" >> /var/log/install.log
+            echo "Bootstrapping from ${!PWD}" >> /var/log/install.log
             ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
             echo "Bootstrapped" >> /var/log/install.log
             echo "$(curl http://169.254.169.254/latest/meta-data/local-ipv4) ${OpenShiftMasterInternalELB.DNSName}" >> /etc/hosts
@@ -1764,16 +1752,10 @@ Resources:
             export LOG_GROUP=${OpenshiftLogGroup}
             aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
             export INSTANCE_NAME=OpenShiftEtcdEC2
-            if [ -f ~/redhat_ose-register.sh ]; then
-              cp ~/redhat_ose-register.sh ~/redhat_ose-register.sh.bkp
-            fi
-            aws s3 cp ${!QS_S3URI}scripts/redhat_ose-register-3.11.sh ~/redhat_ose-register.sh
-            dos2unix ~/redhat_ose-register.sh
-            chmod +x ~/redhat_ose-register.sh
 
             dos2unix bootstrap.sh
             chmod +x bootstrap.sh
-            echo "Bootstrapping from ${PWD}" >> /var/log/install.log
+            echo "Bootstrapping from ${!PWD}" >> /var/log/install.log
             ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
             cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource OpenShiftEtcdEC2 --region ${AWS::Region}
           -
@@ -1862,6 +1844,8 @@ Resources:
         Fn::Sub:
           - |
             #!/bin/bash -x
+            echo "Running $(readlink -f $0)" >> /var/log/install.log
+
             export QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
             yum install -y git dos2unix
             git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
@@ -1880,17 +1864,11 @@ Resources:
             export LAUNCH_CONFIG=OpenShiftNodesLaunchConfig
             export LOG_GROUP=${OpenshiftLogGroup}
             export INSTANCE_NAME=OpenShiftNodeEC2
-            if [ -f ~/redhat_ose-register.sh ]; then
-              cp ~/redhat_ose-register.sh ~/redhat_ose-register.sh.bkp
-            fi
-            aws s3 cp ${!QS_S3URI}scripts/redhat_ose-register-3.11.sh ~/redhat_ose-register.sh
-            dos2unix ~/redhat_ose-register.sh
-            chmod +x ~/redhat_ose-register.sh
 
             aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
             dos2unix bootstrap.sh
             chmod +x bootstrap.sh
-            echo "Bootstrapping from ${PWD}" >> /var/log/install.log
+            echo "Bootstrapping from ${!PWD}" >> /var/log/install.log
             ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
             cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource OpenShiftNodeEC2 --region ${AWS::Region}
           -
