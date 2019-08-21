@@ -1,8 +1,12 @@
 #!/bin/bash -xe
+echo "Running $(readlink -f $0)" >> /var/log/install.log
 
 source ${P}
 
 export INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
+
+echo "INSTANCE_ID=${INSTANCE_ID}" >> /var/log/install.log
+
 qs_cloudwatch_install
 systemctl stop awslogs || true
 cat << EOF > /var/awslogs/etc/awslogs.conf
@@ -34,9 +38,13 @@ initial_position = start_of_file
 datetime_format = %b %d %H:%M:%S
 EOF
 
+echo "awslogs configured" >> /var/log/install.log
+
 # Reload the daemon
 systemctl daemon-reload || true
 systemctl start awslogs || true
+
+echo "awslogs restarted" >> /var/log/install.log
 
 if [ -f /quickstart/pre-install.sh ]
 then
@@ -46,22 +54,27 @@ fi
 qs_enable_epel &> /var/log/userdata.qs_enable_epel.log
 
 qs_retry_command 10 yum -y install jq
+echo "Retrieving ${QS_S3URI}scripts/redhat_ose-register-${OCP_VERSION}.sh" >> /var/log/install.log
 qs_retry_command 25 aws s3 cp ${QS_S3URI}scripts/redhat_ose-register-${OCP_VERSION}.sh ~/redhat_ose-register.sh
+dos2unix ~/redhat_ose-register.sh
 chmod 755 ~/redhat_ose-register.sh
 echo "Registring RedHat OSE" >> /var/log/install.log
 qs_retry_command 20 ~/redhat_ose-register.sh ${RH_CREDS_ARN}
+echo "RedHat OSE registered" >> /var/log/install.log
 
-qs_retry_command 10 yum -y install yum-versionlock
+qs_retry_command 10 yum -y install yum-versionlock ansible-${ANSIBLE_VERSION}
 
-qs_retry_command 10 yum -y install ansible-${ANSIBLE_VERSION}
+echo "Ansible installed" >> /var/log/install.log
 
 yum versionlock add ansible
 sed -i 's/#host_key_checking = False/host_key_checking = False/g' /etc/ansible/ansible.cfg
+echo "Ansible configured" >> /var/log/install.log
 yum repolist -v | grep OpenShift
 
 qs_retry_command 10 pip install boto3 &> /var/log/userdata.boto3_install.log
 mkdir -p /root/ose_scaling/aws_openshift_quickstart
 mkdir -p /root/ose_scaling/bin
+echo "Retrieving python scripts to /root/ose_scaling/aws_openshift_quickstart/" >> /var/log/install.log
 qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/scaling/aws_openshift_quickstart/__init__.py /root/ose_scaling/aws_openshift_quickstart/__init__.py
 qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/scaling/aws_openshift_quickstart/logger.py /root/ose_scaling/aws_openshift_quickstart/logger.py
 qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/scaling/aws_openshift_quickstart/scaler.py /root/ose_scaling/aws_openshift_quickstart/scaler.py
@@ -71,8 +84,10 @@ qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/scaling/setup.py /root/ose_scal
 
 qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/predefined_openshift_vars_${OCP_VERSION}.txt /tmp/openshift_inventory_predefined_vars
 
+echo "Installing OSE scaling with pip" >> /var/log/install.log
 pip install /root/ose_scaling
 
+echo "Initiating CFN" >> /var/log/install.log
 qs_retry_command 10 cfn-init -v --stack ${AWS_STACKNAME} --resource AnsibleConfigServer --configsets cfg_node_keys --region ${AWS_REGION}
 
 echo openshift_master_cluster_hostname=${INTERNAL_MASTER_ELBDNSNAME} >> /tmp/openshift_inventory_userdata_vars
@@ -109,15 +124,21 @@ echo openshift_hosted_registry_storage_s3_region=${AWS_REGION} >> /tmp/openshift
 echo openshift_master_api_port=443 >> /tmp/openshift_inventory_userdata_vars
 echo openshift_master_console_port=443 >> /tmp/openshift_inventory_userdata_vars
 
-qs_retry_command 10 yum -y install wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct
+echo "Installing OS tools" >> /var/log/install.log
+qs_retry_command 10 yum -y install vim wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct
 # Workaround this not-a-bug https://bugzilla.redhat.com/show_bug.cgi?id=1187057
+echo "Uninstalling urllib3" >> /var/log/install.log
 pip uninstall -y urllib3
+echo "Updating yum cache" >> /var/log/install.log
 qs_retry_command 10 yum -y update
+echo "Re-installing urllib3" >> /var/log/install.log
 qs_retry_command 10 pip install urllib3
+echo "Installing Openshift atomic excluders" >> /var/log/install.log
 qs_retry_command 10 yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
 
 cd /tmp
 qs_retry_command 10 wget https://s3-us-west-1.amazonaws.com/amazon-ssm-us-west-1/latest/linux_amd64/amazon-ssm-agent.rpm
+echo "Installing amazon-ssm-agent" >> /var/log/install.log
 qs_retry_command 10 yum install -y ./amazon-ssm-agent.rpm
 systemctl start amazon-ssm-agent
 systemctl enable amazon-ssm-agent
@@ -130,11 +151,14 @@ if [ "${GET_ANSIBLE_FROM_GIT}" == "True" ]; then
   tar -zxf openshift-ansible.tar.gz
   rm -rf /usr/share/ansible
   mkdir -p /usr/share/ansible
+  echo "Installing openshift-ansible for Git" >> /var/log/install.log
   mv openshift-ansible-* /usr/share/ansible/openshift-ansible
 else
+  echo "Installing openshift-ansible" >> /var/log/install.log
   qs_retry_command 10 yum -y install openshift-ansible
 fi
 
+echo "Installing Openshift atomic excluders (once again?)" >> /var/log/install.log
 qs_retry_command 10 yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
 atomic-openshift-excluder unexclude
 
@@ -163,6 +187,7 @@ fi
 #qs_retry_command 10 aws autoscaling attach-load-balancer-target-groups --auto-scaling-group-name ${OPENSHIFTMASTERASG} --target-group-arns ${OPENSHIFTMASTERINTERNALTGARN} --region ${AWS_REGION}
 
 #/bin/aws-ose-qs-scale --generate-initial-inventory --ocp-version ${OCP_VERSION} --write-hosts-to-tempfiles --debug
+echo "Setting up ansible config" >> /var/log/install.log
 cat /tmp/openshift_ansible_inventory* >> /tmp/openshift_inventory_userdata_vars || true
 sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg
 sed -i 's/#log_path/log_path/g' /etc/ansible/ansible.cfg
@@ -172,11 +197,24 @@ sed -i 's/#deprecation_warnings = True/deprecation_warnings = False/g' /etc/ansi
 ###### ODA ######
 
 ### dirty ? : should use instance name ?
+  # {
+  #   "Name": "tag:Name",
+  #   "Values": ["openshift-etcd"]
+  # },
+  # {
+  #   "Name": "tag:project",
+  #   "Values": ["aforge"]
+  # },
+  # {
+  #   "Name": "tag:role",
+  #   "Values": ["etcd"]
+  # }
+      # EC2_INSTANCE=`aws ec2 describe-instances --region ${EC2_REGION}  --filters ${EC2_FILTERS} --query "Reservations[0].Instances[0].InstanceId" | jq -r '.'`
 ETCD_INSTANCE_ID=$(aws ec2 describe-instances  --region=eu-central-1 --filters "Name=network-interface.addresses.private-ip-address,Values=10.2.1.10"  --query 'Reservations[*].Instances[*].[InstanceId]' | grep -v "\[" | grep -v "\]" | awk -F"\"" '{print $2}') 
 MASTER_INSTANCE_ID=$(aws ec2 describe-instances  --region=eu-central-1 --filters "Name=network-interface.addresses.private-ip-address,Values=10.2.1.20"  --query 'Reservations[*].Instances[*].[InstanceId]' | grep -v "\[" | grep -v "\]" | awk -F"\"" '{print $2}')
 NODE_INSTANCE_ID=$(aws ec2 describe-instances  --region=eu-central-1 --filters "Name=network-interface.addresses.private-ip-address,Values=10.2.1.30"  --query 'Reservations[*].Instances[*].[InstanceId]' | grep -v "\[" | grep -v "\]" | awk -F"\"" '{print $2}')
 
-
+echo "Updating ansible inventory with ETCD_INSTANCE_ID=${ETCD_INSTANCE_ID}, MASTER_INSTANCE_ID=${MASTER_INSTANCE_ID}, NODE_INSTANCE_ID=${NODE_INSTANCE_ID}" >> /var/log/install.log
 
 sed -i "s/ETCD_INSTANCE_ID/${ETCD_INSTANCE_ID}/g" /tmp/ansible_inventory.yaml
 sed -i "s/MASTER_INSTANCE_ID/${MASTER_INSTANCE_ID}/g" /tmp/ansible_inventory.yaml
@@ -196,21 +234,27 @@ echo "ip-10-2-1-20.eu-central-1.compute.internal" > /tmp/openshift_initial_maste
 
 ###### /ODA ######
 
-
 qs_retry_command 50 ansible -m ping all
 
+echo "Ansible playing /usr/share/ansible/openshift-ansible/bootstrap_wrapper.yml" >> /var/log/install.log
 ansible-playbook -i /tmp/ansible_inventory.yaml /usr/share/ansible/openshift-ansible/bootstrap_wrapper.yml > /var/log/bootstrap.log
+echo "Ansible playing /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml" >> /var/log/install.log
 ansible-playbook -i /tmp/ansible_inventory.yaml /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml >> /var/log/bootstrap.log
+echo "Ansible playing /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml" >> /var/log/install.log
 ansible-playbook -i /tmp/ansible_inventory.yaml /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml >> /var/log/bootstrap.log
 
 #aws autoscaling resume-processes --auto-scaling-group-name ${OPENSHIFTMASTERASG} --scaling-processes HealthCheck --region ${AWS_REGION}
 
+echo "Installing atomic-openshift-clients" >> /var/log/install.log
 qs_retry_command 10 yum install -y atomic-openshift-clients
 AWSSB_SETUP_HOST=$(head -n 1 /tmp/openshift_initial_masters)
 
 set +x
+echo "Getting OCP_PASS" >> /var/log/install.log
 OCP_PASS=$(aws secretsmanager get-secret-value --secret-id  ${OCP_PASS_ARN} --region ${AWS_REGION} --query SecretString --output text)
+echo "Setting OCP pass with OCP_PASS=${OCP_PASS}" >> /var/log/install.log
 ansible masters -a "htpasswd -b /etc/origin/master/htpasswd admin ${OCP_PASS}"
+echo "Defining cluster admin role" >> /var/log/install.log
 ansible masters -a "oc adm policy add-cluster-role-to-user cluster-admin admin"
 set -x
 
@@ -241,3 +285,6 @@ if [ -f /quickstart/post-install.sh ]
 then
   /quickstart/post-install.sh
 fi
+
+ETCD_INSTANCE_ID_2=$(aws ec2 describe-instances  --region=eu-central-1 --filters "Name=tag:Name,Values=openshift-etcd,Name=tag:project,Values=aforge,Name=tag:role,Values=etcd"  --query 'Reservations[0].Instances[0].InstanceId' | jq -r '.')  || true
+echo "VERSION 2: ETCD_INSTANCE_ID_2=${ETCD_INSTANCE_ID_2}" >> /var/log/install.log
