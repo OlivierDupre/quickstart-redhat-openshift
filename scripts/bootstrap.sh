@@ -1,7 +1,11 @@
 #!/bin/bash -xe
+echo "Running $(readlink -f $0)" >> /var/log/install.log
 
 source ${P}
 export INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
+
+echo "INSTANCE_ID=${INSTANCE_ID}" >> /var/log/install.log
+
 qs_cloudwatch_install
 systemctl stop awslogs || true
 cat << EOF > /var/awslogs/etc/awslogs.conf
@@ -15,12 +19,15 @@ file = /var/log/messages
 log_stream_name = ${INSTANCE_ID}/var/log/messages
 initial_position = start_of_file
 datetime_format = %b %d %H:%M:%S
-
 EOF
+
+echo "awslogs configured" >> /var/log/install.log
 
 # Reload the daemon
 systemctl daemon-reload || true
 systemctl start awslogs || true
+
+echo "awslogs restarted" >> /var/log/install.log
 
 if [ -f /quickstart/pre-install.sh ]
 then
@@ -29,11 +36,14 @@ fi
 
 qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || true
 
-qs_retry_command 10 yum -y install jq
+qs_retry_command 10 yum -y install vim jq
+echo "Retrieving ${QS_S3URI}scripts/redhat_ose-register-${OCP_VERSION}.sh" >> /var/log/install.log
 qs_retry_command 25 aws s3 cp ${QS_S3URI}scripts/redhat_ose-register-${OCP_VERSION}.sh ~/redhat_ose-register.sh
+dos2unix ~/redhat_ose-register.sh
 chmod 755 ~/redhat_ose-register.sh
 echo "Registring RedHat OSE" >> /var/log/install.log
 qs_retry_command 25 ~/redhat_ose-register.sh ${RH_CREDS_ARN}
+echo -e "RedHat OSE registered.\nNow creating K8S conf" >> /var/log/install.log
 
 mkdir -p /etc/aws/
 printf "[Global]\nZone = $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)\n" > /etc/aws/aws.conf
