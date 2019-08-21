@@ -1651,7 +1651,7 @@ Resources:
             aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
             dos2unix bootstrap.sh
             chmod +x bootstrap.sh
-            echo "Bootstrapping from ${PWD}" >> /var/log/install.log
+            echo "Bootstrapping from $PWD" >> /var/log/install.log
             ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
             echo "Bootstrapped" >> /var/log/install.log
             echo "$(curl http://169.254.169.254/latest/meta-data/local-ipv4) ${OpenShiftMasterInternalELB.DNSName}" >> /etc/hosts
