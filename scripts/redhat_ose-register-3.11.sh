@@ -1,11 +1,14 @@
 #!/bin/bash -e
+echo "Running $(readlink -f $0)" >> /var/log/install.log
 
 source ${P}
 
 #Attach to Subscription pool
+echo "Cleaning yum" >> /var/log/install.log
 yum clean all
 rm -rf /var/cache/yum
 
+echo -e "Getting creds in AWS from secretmanager. Id: ${1}" >> /var/log/install.log
 CREDS=$(aws secretsmanager get-secret-value --secret-id ${1} --region ${AWS_REGION} --query SecretString --output text)
 REDHAT_USERNAME=$(echo ${CREDS} | jq -r .user)
 REDHAT_PASSWORD=$(echo ${CREDS} | jq -r .password)
