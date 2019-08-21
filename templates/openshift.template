@@ -278,7 +278,7 @@ Parameters:
     Description: Type of EC2 instance for the Etcd instances
     Type: String
   NodesInstanceType:
-    Default: t2.large
+    Default: t2.xlarge
     AllowedValues:
       - t2.medium
       - t2.large
