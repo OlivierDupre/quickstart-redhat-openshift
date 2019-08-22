@@ -482,6 +482,11 @@ Resources:
         AutomationBroker: !Ref AutomationBroker
         AmiId: !Ref AmiId
         ClusterConsole: !Ref ClusterConsole
+  TriggerStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/auto-start-and-stop.template'
+
 Outputs:
   OpenShiftUI:
     Description: The URL OpenShiftUI

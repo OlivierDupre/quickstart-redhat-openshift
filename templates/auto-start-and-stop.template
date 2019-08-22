@@ -1,0 +1,348 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: '(qs-1nltbq5f3) OpenShift+VPC, License: Apache 2.0 (Please do not remove)
+  April, 6, 2018'
+Resources:
+
+  AutoStartAndStopEc2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: AutoStartAndStopEc2
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 
+                - lambda.amazonaws.com
+                - events.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+        - arn:aws:iam::aws:policy/AWSLambdaFullAccess
+      Path: /
+      Policies:
+        - PolicyName: auto-start-and-stop-ec2
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:*
+                  - ec2:*
+                Resource:
+                  - '*'
+              - Effect: Allow
+                Action:
+                  - logs:FilterLogEvents
+                Resource:
+                  - '*'
+
+  AutoStartAndStopEc2Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Start or stop EC2 based on events
+      Handler: index.lambda_handler
+      Runtime: python2.7
+      Role: !GetAtt 'AutoStartAndStopEc2Role.Arn'
+      Timeout: 240
+      Code:
+        ZipFile: |
+          # Python 2.7
+          import boto3
+          import logging
+          import json,ast
+
+          #setup simple logging for INFO
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          #define the connection
+          ec2 = boto3.resource('ec2')
+
+          # This lambda must be called with an input event to define the `goal`: 'start' or 'stop' the EC2, and fine tune the `filters` to find the EC2 to start or stop.
+          # e.g.
+          # {
+          #   "goal": "stop",
+          #   "filters": [
+          #     {
+          #       "Name": "tag:role",
+          #       "Values": ["nodes"]
+          #     },
+          #     {
+          #       "Name": "tag:project",
+          #       "Values": ["aforge"]
+          #     }
+          #   ]
+          # }
+          def lambda_handler(event, context):
+              try:
+                  goal = ast.literal_eval(json.dumps(event['goal']))
+              except:
+                  goal = "nothing"
+              print "Goal: ", goal
+              
+              try:
+                  event_filters = ast.literal_eval(json.dumps(event['filters']))
+              except:
+                  print "No filters provided to this lambda"
+              print "Filters: ", event_filters
+                  
+              if goal == 'start':
+                  start_ec2(event, context, event_filters)
+              elif goal == 'stop':
+                  stop_ec2(event, context, event_filters)
+              else:
+                  print "No goal provide to this lambda"
+
+          def start_ec2(event, context, event_filters):
+              # Use the filter() method of the instances collection to retrieve all running EC2 instances.
+              local_filters = [
+                  {
+                      'Name': 'instance-state-name', 
+                      'Values': ['stopped']
+                  },
+                  {
+                      'Name': 'tag:AutoStart',
+                      'Values': ['true']
+                  }
+              ]
+              
+              filters = local_filters + event_filters
+              
+              print("Start filters", filters)
+
+              #filter the instances
+              instances = ec2.instances.filter(Filters=filters)
+
+              #locate all running instances
+              filteredInstances = [instance.id for instance in instances]
+              
+              #print the instances for logging purposes
+              #print RunningInstances 
+              
+              #make sure there are actually instances to shut down. 
+              if len(filteredInstances) > 0:
+                  #perform the shutdown
+                  Starting = ec2.instances.filter(InstanceIds=filteredInstances).start()
+                  print Starting
+              else:
+                  print "No instances to start using these filters. ", filters
+
+          def stop_ec2(event, context, event_filters):
+              # Use the filter() method of the instances collection to retrieve all running EC2 instances.
+              # Use the filter() method of the instances collection to retrieve all running EC2 instances.
+              # TODO: Set here the filters needed to uniquely identify the instances that must be stopped.
+              local_filters = [
+                  {
+                      'Name': 'instance-state-name', 
+                      'Values': ['running']
+                  },
+                  {
+                      'Name': 'tag:AutoStop',
+                      'Values': ['true']
+                  }
+              ]
+              
+              filters = local_filters + event_filters
+              
+              print("Stop filters",filters)
+              
+              #filter the instances
+              instances = ec2.instances.filter(Filters=filters)
+
+              #locate all running instances
+              filteredInstances = [instance.id for instance in instances]
+
+              #make sure there are actually instances to shut down. 
+              if len(filteredInstances) > 0:
+                  #perform the shutdown
+                  Stopping = ec2.instances.filter(InstanceIds=filteredInstances).stop()
+                  print Stopping
+              else:
+                  print "No instances to stop using these filters. ", filters
+
+  AutoStartEtcdTrigger:
+    Type: AWS::Events::Rule
+    DependsOn: AutoStartAndStopEc2Function
+    Properties: 
+      Description: Starts Etcd instances
+      Name: EtcdAutoStart
+      RoleArn: !GetAtt 'AutoStartAndStopEc2Role.Arn'
+      ScheduleExpression: 'cron(30 6 ? * MON-FRI *)'
+      State: ENABLED
+      Targets: 
+        - 
+          Arn: 
+            Fn::GetAtt: 
+              - "AutoStartAndStopEc2Function"
+              - "Arn"
+          Id: "AutoStartAndStopEc2Function"
+          Input: '
+          {
+            "goal": "start",
+            "filters": [
+              {
+                "Name": "tag:role",
+                "Values": ["etcd"]
+              },
+              {
+                "Name": "tag:project",
+                "Values": ["aforge"]
+              }
+            ]
+          }'
+
+  AutoStopEtcdTrigger:
+    Type: AWS::Events::Rule
+    DependsOn: AutoStartAndStopEc2Function
+    Properties: 
+      Description: Stops Etcd instances
+      Name: EtcdAutoStop
+      RoleArn: !GetAtt 'AutoStartAndStopEc2Role.Arn'
+      ScheduleExpression: 'cron(50 17 ? * MON-FRI *)'
+      State: ENABLED
+      Targets: 
+        - 
+          Arn: 
+            Fn::GetAtt: 
+              - "AutoStartAndStopEc2Function"
+              - "Arn"
+          Id: "AutoStartAndStopEc2Function"
+          Input: '
+          {
+            "goal": "stop",
+            "filters": [
+              {
+                "Name": "tag:role",
+                "Values": ["etcd"]
+              },
+              {
+                "Name": "tag:project",
+                "Values": ["aforge"]
+              }
+            ]
+          }'
+
+  AutoStartMasterTrigger:
+    Type: AWS::Events::Rule
+    DependsOn: AutoStartAndStopEc2Function
+    Properties: 
+      Description: Starts Master instances
+      Name: MasterAutoStart
+      RoleArn: !GetAtt 'AutoStartAndStopEc2Role.Arn'
+      ScheduleExpression: 'cron(40 6 ? * MON-FRI *)'
+      State: ENABLED
+      Targets: 
+        - 
+          Arn: 
+            Fn::GetAtt: 
+              - "AutoStartAndStopEc2Function"
+              - "Arn"
+          Id: "AutoStartAndStopEc2Function"
+          Input: '
+          {
+            "goal": "start",
+            "filters": [
+              {
+                "Name": "tag:role",
+                "Values": ["master"]
+              },
+              {
+                "Name": "tag:project",
+                "Values": ["aforge"]
+              }
+            ]
+          }'
+
+  AutoStopMasterTrigger:
+    Type: AWS::Events::Rule
+    DependsOn: AutoStartAndStopEc2Function
+    Properties: 
+      Description: Stops Master instances
+      Name: MasterAutoStop
+      RoleArn: !GetAtt 'AutoStartAndStopEc2Role.Arn'
+      ScheduleExpression: 'cron(40 17 ? * MON-FRI *)'
+      State: ENABLED
+      Targets: 
+        - 
+          Arn: 
+            Fn::GetAtt: 
+              - "AutoStartAndStopEc2Function"
+              - "Arn"
+          Id: "AutoStartAndStopEc2Function"
+          Input: '
+          {
+            "goal": "stop",
+            "filters": [
+              {
+                "Name": "tag:role",
+                "Values": ["master"]
+              },
+              {
+                "Name": "tag:project",
+                "Values": ["aforge"]
+              }
+            ]
+          }'
+
+  AutoStartNodesTrigger:
+    Type: AWS::Events::Rule
+    DependsOn: AutoStartAndStopEc2Function
+    Properties: 
+      Description: Starts Node instances
+      Name: NodesAutoStart
+      RoleArn: !GetAtt 'AutoStartAndStopEc2Role.Arn'
+      ScheduleExpression: 'cron(50 6 ? * MON-FRI *)'
+      State: ENABLED
+      Targets: 
+        - 
+          Arn: 
+            Fn::GetAtt: 
+              - "AutoStartAndStopEc2Function"
+              - "Arn"
+          Id: "AutoStartAndStopEc2Function"
+          Input: '
+          {
+            "goal": "start",
+            "filters": [
+              {
+                "Name": "tag:role",
+                "Values": ["nodes"]
+              },
+              {
+                "Name": "tag:project",
+                "Values": ["aforge"]
+              }
+            ]
+          }'
+
+  AutoStopNodesTrigger:
+    Type: AWS::Events::Rule
+    DependsOn: AutoStartAndStopEc2Function
+    Properties: 
+      Description: Stops Node instances
+      Name: NodesAutoStop
+      RoleArn: !GetAtt 'AutoStartAndStopEc2Role.Arn'
+      ScheduleExpression: 'cron(30 17 ? * MON-FRI *)'
+      State: ENABLED
+      Targets: 
+        - 
+          Arn: 
+            Fn::GetAtt: 
+              - "AutoStartAndStopEc2Function"
+              - "Arn"
+          Id: "AutoStartAndStopEc2Function"
+          Input: '
+          {
+            "goal": "stop",
+            "filters": [
+              {
+                "Name": "tag:role",
+                "Values": ["nodes"]
+              },
+              {
+                "Name": "tag:project",
+                "Values": ["aforge"]
+              }
+            ]
+          }'
