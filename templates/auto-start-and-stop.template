@@ -346,3 +346,65 @@ Resources:
               }
             ]
           }'
+
+  AutoStartCicdTrigger:
+    Type: AWS::Events::Rule
+    DependsOn: AutoStartAndStopEc2Function
+    Properties: 
+      Description: Starts Cicd instances
+      Name: NodesAutoStart
+      RoleArn: !GetAtt 'AutoStartAndStopEc2Role.Arn'
+      ScheduleExpression: 'cron(30 6 ? * MON-FRI *)'
+      State: ENABLED
+      Targets: 
+        - 
+          Arn: 
+            Fn::GetAtt: 
+              - "AutoStartAndStopEc2Function"
+              - "Arn"
+          Id: "AutoStartAndStopEc2Function"
+          Input: '
+          {
+            "goal": "start",
+            "filters": [
+              {
+                "Name": "tag:role",
+                "Values": ["cicd"]
+              },
+              {
+                "Name": "tag:project",
+                "Values": ["aforge"]
+              }
+            ]
+          }'
+
+  AutoStopCicdTrigger:
+    Type: AWS::Events::Rule
+    DependsOn: AutoStartAndStopEc2Function
+    Properties: 
+      Description: Stops  CICD instances
+      Name: CicdAutoStop
+      RoleArn: !GetAtt 'AutoStartAndStopEc2Role.Arn'
+      ScheduleExpression: 'cron(30 17 ? * MON-FRI *)'
+      State: ENABLED
+      Targets: 
+        - 
+          Arn: 
+            Fn::GetAtt: 
+              - "AutoStartAndStopEc2Function"
+              - "Arn"
+          Id: "AutoStartAndStopEc2Function"
+          Input: '
+          {
+            "goal": "stop",
+            "filters": [
+              {
+                "Name": "tag:role",
+                "Values": ["cicd"]
+              },
+              {
+                "Name": "tag:project",
+                "Values": ["aforge"]
+              }
+            ]
+          }'

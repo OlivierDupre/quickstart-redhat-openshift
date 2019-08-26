@@ -1254,7 +1254,6 @@ Resources:
     Properties:
       RetentionInDays: 7
 
-
   AnsibleConfigServer:
     Type: AWS::EC2::Instance
     Metadata:

@@ -67,6 +67,22 @@ if [ "${INSTANCE_NAME}" != "OpenShiftEtcdEC2" ]; then
     qs_retry_command 10 systemctl start docker
 fi
 
+echo "Tagging images for autostart & autostop" >> /var/log/install.log
+aws ec2 create-tags --resources ${INSTANCE_ID} --tags Key=AutoStart,Value=true --region ${AWS_REGION}
+aws ec2 create-tags --resources ${INSTANCE_ID} --tags Key=AutoStop,Value=true --region ${AWS_REGION}
+
+echo "Tagging with server role" >> /var/log/install.log
+if [ "${INSTANCE_NAME}" != "OpenShiftMasterEC2" ]
+    aws ec2 create-tags --resources ${INSTANCE_ID} --tags Key=role,Value=master --region ${AWS_REGION}
+elif [ "${INSTANCE_NAME}" != "OpenShiftNodeEC2" ]
+    aws ec2 create-tags --resources ${INSTANCE_ID} --tags Key=role,Value=nodes --region ${AWS_REGION}
+elif [ "${INSTANCE_NAME}" != "OpenShiftEtcdEC2" ]
+    aws ec2 create-tags --resources ${INSTANCE_ID} --tags Key=role,Value=etcd --region ${AWS_REGION}
+else [ "${INSTANCE_NAME}" != "cicdserver" ]; then
+    echo "CICD current name: ${INSTANCE_NAME}" >> /var/log/install.log
+    aws ec2 create-tags --resources ${INSTANCE_ID} --tags Key=role,Value=cicd --region ${AWS_REGION}
+fi
+
 qs_retry_command 10 cfn-init -v  --stack ${AWS_STACKNAME} --resource ${INSTANCE_NAME} --configsets cfg_node_keys --region ${AWS_REGION}
 qs_retry_command 10 yum install -y wget atomic-openshift-docker-excluder atomic-openshift-node \
     atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq glusterfs \
