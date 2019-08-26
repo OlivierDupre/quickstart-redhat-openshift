@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Jenkins CICD'
+CicdServer:
+Type: AWS::EC2::Instance
+Metadata:
+  AWS::CloudFormation::Init:
+    configSets:
+      cfg_node_keys:
+        - GetPublicKey
+        - AddPublicKey
+        - SetPrivateKey
+      cfg_networkmgr:
+        - rpms
+        - NetworkManager
+    rpms:
+      packages:
+        yum:
+          NetworkManager: []
+    NetworkManager:
+      commands:
+        start_enable_nm:
+          command: systemctl start NetworkManager && systemctl enable  NetworkManager
+          ignoreErrors: 'false'
+    SetPrivateKey:
+      files:
+        /root/.ssh/id_rsa:
+          content: !Sub |
+            #QuickStart Generated
+            ${GetRSA.PEM}
+          mode: '000400'
+          owner: root
+          group: root
+    GetPublicKey:
+      files:
+        /root/.ssh/public.key:
+          content: !Sub |
+            #QuickStart Generated
+            ${GetRSA.PUB}
+          mode: '000400'
+          owner: root
+          group: root
+    AddPublicKey:
+      commands:
+        append-publickey:
+          command: cat /root/.ssh/public.key >>/root/.ssh/authorized_keys
+          ignoreErrors: 'false'
+Properties:
+  KeyName: !Ref 'KeyPairName'
+  ImageId: ami-9a183671
+  IamInstanceProfile: !Ref 'SetupRoleProfile'
+  Tags:
+    - Key: Name
+      Value: cicdserver
+  InstanceType: m5.2xlarge
+  NetworkInterfaces:
+    - DeleteOnTermination: true
+      AssociatePublicIpAddress: true
+      DeviceIndex: '0'
+      GroupSet:
+        - !Ref 'OpenShiftSecurityGroup'
+      SubnetId: !Ref 'PublicSubnet1ID'
+  UserData: !Base64
+    Fn::Sub:
+      - |
+        #!/bin/bash -x
+        export QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
+        export AWS_REGION=${AWS::Region}
+        export AWS_STACKNAME=${AWS::StackName}
+        export QS_S3URI=s3://${QSS3BucketName}/${QSS3KeyPrefix}
+        export QS_S3BUCKETNAME=${QSS3BucketName}
+        export AWS_STACKID=${AWS::StackId}
+        export VPCID=${VPCID}
+        export REGISTRY_BUCKET=${RegBucket}
+        export SB_ROLE=${SbRole}
+        export SB_TABLE=${SbTable}
+        export SB_VERSION=v1.0.0-beta.3
+        export SB_ACCOUNTID=${AWS::AccountId}
+        export LOG_GROUP=${OpenshiftLogGroup}
+        yum install -y git dos2unix
+        git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
+        export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
+        source $P
+        qs_bootstrap_pip || qs_err " pip bootstrap failed "
+        qs_aws-cfn-bootstrap || qs_err "cfn bootstrap failed"
+        pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err " awscli install failed "
+
+        # aws s3 cp ${!QS_S3URI}scripts/ansibleconfigserver_bootstrap.sh ./bootstrap.sh
+        # dos2unix bootstrap.sh
+        # chmod +x bootstrap.sh
+        # echo "Bootstrapping from ${!PWD}" >> /var/log/install.log
+        # ./bootstrap.sh || qs_err " Openshift installation failed, see logs for details "
+        cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource CicdServer --region ${AWS::Region}
+CreationPolicy:
+  ResourceSignal:
+    Timeout: PT360M
