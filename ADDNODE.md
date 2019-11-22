@@ -113,9 +113,7 @@ download: s3://aforge/openshift-stack/scripts/bootstrap.sh to ./bootstrap.sh
 ```
 
 Launch the bootstrap.sh script.
-script needs modification:
 ```bash
-sed -i "s/.*cfn-init.*//g" /bootstrap.sh
 /bootstrap.sh
 ```  
 
