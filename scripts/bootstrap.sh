@@ -50,7 +50,10 @@ if [ "${INSTANCE_NAME}" != "OpenShiftEtcdEC2" ]; then
     qs_retry_command 10 systemctl start docker
 fi
 
-qs_retry_command 10 cfn-init -v  --stack ${AWS_STACKNAME} --resource ${INSTANCE_NAME} --configsets cfg_node_keys --region ${AWS_REGION}
+if [ "${FIRST_INSTALL}" == "yes" ]; then
+    qs_retry_command 10 cfn-init -v  --stack ${AWS_STACKNAME} --resource ${INSTANCE_NAME} --configsets cfg_node_keys --region ${AWS_REGION}
+fi
+
 qs_retry_command 10 yum install -y wget atomic-openshift-docker-excluder atomic-openshift-node \
     atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq glusterfs \
     glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services \

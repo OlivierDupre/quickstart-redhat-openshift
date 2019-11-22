@@ -11,7 +11,7 @@ Select the desired flavor (recommended : t2.2xlarge : 8CPUs, 32GB RAM) and go to
 
 ### NETWORK:
 Network : AForge VPC
-Subnet : private Subnet
+Subnet : private Subnet 1A
 IAM Role : aforge-OpenshiftStack...
 Network Interface -> Primary IP -> 10.2.1.3X
 
@@ -38,15 +38,16 @@ scope aws
 ## OCP installation
 
 ### PREQ
-You need to be root for this chapter :
+You need to be root for this chapter on the node instance:
 ```bash
 sudo su -
 ```
 &nbsp;
 ### Variables 
-Export The following variables :
+Export The following variables (BEWARE OF FIRST_INSTALL param!!):
 ```bash
 #export QSLOCATION=https://aforge-aws-templates.s3.amazonaws.com/aforge/
+export FIRST_INSTALL=no
 export ENABLE_HAWKULAR=True
 export GET_ANSIBLE_FROM_GIT=False
 export OCP_ANSIBLE_RELEASE=3.11.115-1
@@ -70,7 +71,7 @@ export OCP_VERSION=3.11
 export AWS_REGION=eu-central-1
 export RH_CREDS_ARN=arn:aws:secretsmanager:eu-central-1:175914515715:secret:RedhatSubscriptionSecret-Zdrust06uiQi-WAq1Fd
 export AWS_STACKNAME=aforge-OpenShiftStack-1F85GV6LQ4C2
-export INSTANCE_NAME=OpenShiftNode2EC2
+export INSTANCE_NAME=OpenShiftNode4EC2
 export OPENSHIFTMASTERINTERNALELB=arn:aws:elasticloadbalancing:eu-central-1:175914515715:loadbalancer/aforge-Op-OpenShif-10Z72DHJMTJ56
 export INTERNAL_MASTER_ELBDNSNAME=aforge-Op-OpenShif-10Z72DHJMTJ56-1822595569.eu-central-1.elb.amazonaws.com
 export MASTER_ELBDNSNAME=aforge-ads.com
@@ -112,7 +113,9 @@ download: s3://aforge/openshift-stack/scripts/bootstrap.sh to ./bootstrap.sh
 ```
 
 Launch the bootstrap.sh script.
+script needs modification:
 ```bash
+sed -i "s/.*cfn-init.*//g" /bootstrap.sh
 /bootstrap.sh
 ```  
 
@@ -146,7 +149,7 @@ If other lines are present, back up the file and remove the undesired lines
 
 
 &nbsp;
-### Ansible scripts
+### Ansible scripts on ansible-configserver instance
 
 Retrieve the ansible inventory:
 ```bash
@@ -239,3 +242,44 @@ Wait 10sec and refresh the page. In the "Instances" tab you should see all nodes
 As an OpenShift "cluster:admin" user, 
 
 oc scale dc/router --replicas=0 -n default && oc scale dc/router --replicas=1 -n default
+
+
+
+### Install node_exporter
+Launch the following script as root :
+```bash
+#!/bin/bash
+export NODE_EXP_VERSION=0.18.1
+useradd -m -s /bin/bash prometheus
+# (or adduser --disabled-password --gecos "" prometheus)
+
+# Download node_exporter release from original repo
+curl -L -O  https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXP_VERSION}/node_exporter-${NODE_EXP_VERSION}.linux-amd64.tar.gz
+
+tar -xzvf node_exporter-${NODE_EXP_VERSION}.linux-amd64.tar.gz
+mv node_exporter-${NODE_EXP_VERSION}.linux-amd64 /home/prometheus/node_exporter
+rm node_exporter-${NODE_EXP_VERSION}.linux-amd64.tar.gz
+chown -R prometheus:prometheus /home/prometheus/node_exporter
+
+# Add node_exporter as systemd service
+tee -a /etc/systemd/system/node_exporter.service << END
+[Unit]
+Description=Node Exporter
+Wants=network-online.target
+After=network-online.target
+[Service]
+User=prometheus
+ExecStart=/home/prometheus/node_exporter/node_exporter --web.listen-address=:9102
+[Install]
+WantedBy=default.target
+END
+
+systemctl daemon-reload
+systemctl start node_exporter
+systemctl enable node_exporter
+```
+
+Then Go into OCP, namespace "prometheus", and edit the "prometheus-cm" configMap to add the new target. Once done, redeploy prometheus.
+
+
+
