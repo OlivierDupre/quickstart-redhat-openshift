@@ -120,7 +120,7 @@ Launch the bootstrap.sh script.
 
 Latest Ansible scripts requires a recent Linux Kernel to be installed on the nodes to provision :
 ```bash
-yum update kernel && reboot
+yum update -y kernel  && reboot
 ```  
 
 
@@ -172,7 +172,8 @@ export MASTER_INSTANCE_ID=$(aws ec2 describe-instances  --region=eu-central-1 --
 export NODE_INSTANCE_ID=$(aws ec2 describe-instances  --region=eu-central-1 --filters "Name=network-interface.addresses.private-ip-address,Values=10.2.1.30"  --query 'Reservations[*].Instances[*].[InstanceId]' | grep -v "\[" | grep -v "\]" | awk -F"\"" '{print $2}')
 export NODE2_INSTANCE_ID=$(aws ec2 describe-instances  --region=eu-central-1 --filters "Name=network-interface.addresses.private-ip-address,Values=10.2.1.31"  --query 'Reservations[*].Instances[*].[InstanceId]' | grep -v "\[" | grep -v "\]" | awk -F"\"" '{print $2}')
 export NODE3_INSTANCE_ID=$(aws ec2 describe-instances  --region=eu-central-1 --filters "Name=network-interface.addresses.private-ip-address,Values=10.2.1.32"  --query 'Reservations[*].Instances[*].[InstanceId]' | grep -v "\[" | grep -v "\]" | awk -F"\"" '{print $2}')
-export NODE_NEW_INSTANCE_ID=$(aws ec2 describe-instances  --region=eu-central-1 --filters "Name=network-interface.addresses.private-ip-address,Values=10.2.1.32"  --query 'Reservations[*].Instances[*].[InstanceId]' | grep -v "\[" | grep -v "\]" | awk -F"\"" '{print $2}')
+export NODE4_INSTANCE_ID=$(aws ec2 describe-instances  --region=eu-central-1 --filters "Name=network-interface.addresses.private-ip-address,Values=10.2.1.33"  --query 'Reservations[*].Instances[*].[InstanceId]' | grep -v "\[" | grep -v "\]" | awk -F"\"" '{print $2}')
+export NODE_NEW_INSTANCE_ID=$(aws ec2 describe-instances  --region=eu-central-1 --filters "Name=network-interface.addresses.private-ip-address,Values=10.2.1.33"  --query 'Reservations[*].Instances[*].[InstanceId]' | grep -v "\[" | grep -v "\]" | awk -F"\"" '{print $2}')
 
 sed -i "s/ETCD_INSTANCE_ID/${ETCD_INSTANCE_ID}/g" /tmp/ansible_inventory.yaml
 sed -i "s/MASTER_INSTANCE_ID/${MASTER_INSTANCE_ID}/g" /tmp/ansible_inventory.yaml

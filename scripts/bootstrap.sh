@@ -70,9 +70,9 @@ qs_retry_command 10 wget https://s3-us-west-1.amazonaws.com/amazon-ssm-us-west-1
 qs_retry_command 10 yum install -y ./amazon-ssm-agent.rpm
 systemctl start amazon-ssm-agent
 systemctl enable amazon-ssm-agent
-rm ./amazon-ssm-agent.rpm
+rm -rf ./amazon-ssm-agent.rpm
 
-if [ -f /quickstart/post-install.sh ]
-then
-  /quickstart/post-install.sh
-fi
+#if [ -f /quickstart/post-install.sh ]
+#then
+#  /quickstart/post-install.sh
+#fi
